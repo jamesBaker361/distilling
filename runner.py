@@ -1,7 +1,10 @@
 import argparse
 from gpu_helpers import print_details
+from static_globals import *
 
 parser=argparse.ArgumentParser()
+
+parser.add_argument("--method_name",type=str,default=PROGRESSIVE)
 
 def main(args):
     return
