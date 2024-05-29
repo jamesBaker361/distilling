@@ -6,6 +6,7 @@ from accelerate import Accelerator
 from diffusers import StableDiffusionPipeline, DDIMScheduler
 import torch
 import random
+from distillation_helpers import reverse_step
 
 parser=argparse.ArgumentParser()
 
@@ -139,25 +140,25 @@ def main(args):
                             teacher_latents=student_latents.detach().clone()
                             positive=positive.to(accelerator.device)
                             negative=negative.to(accelerator.device)
-                            with accelerator.accumulate(student_pipeline.unet):
-                                pass
-                                
-                                #iterate through timesteps
-                                #STUDENT:
-                                # expand the latents if we are doing classifier free guidance
-                                # predict the noise residual
-                                # compute the previous noisy sample x_t -> x_t-1
-                                
-                                #TEACHER:
-                                # expand the latents if we are doing classifier free guidance
-                                # predict the noise residual
-                                # compute the previous noisy sample x_t -> x_t-1
-                                #then REPEAT
-                                #compute loss
-                                
-                                #logging
-                                #optimization step
-                        #check if avg loss<convergence
+                            if args.do_classifier_free_guidance:
+                                prompt_embeds = torch.cat([negative, positive])
+                            else:
+                                prompt_embeds=positive
+                            for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                                student_t=student_pipeline.scheduler.timesteps[student_i]
+                                teacher_i=2*student_i
+                                teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
+                                with accelerator.accumulate(student_pipeline.unet):
+                                    student_latents=reverse_step(args,student_t,student_pipeline,student_latents,prompt_embeds, added_cond_kwargs)
+                                    
+                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
+                                    teacher_latents=reverse_step(args,teacher_t+1, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
+                                    
+                                    #compute loss
+                                    
+                                    #logging
+                                    #optimization step
+                            #check if avg loss<convergence
                 #metrics
 
 
