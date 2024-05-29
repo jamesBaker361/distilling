@@ -28,8 +28,18 @@ parser.add_argument("--epochs",type=int,default=10)
 parser.add_argument("--convergence_threshold",type=float,default=0.001,help="stop training once student and teacher are this close")
 parser.add_argument("--do_classifier_free_guidance",action="store_true")
 parser.add_argument("--seed",type=int,default=123)
+parser.add_argument("--prediction_method",type=str,default=REVERSE)
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
+'''
+Predicting x directly.
+
+Predicting both x and epsilon, via separate output channels {x˜θ(zt), epsilon ˜θ(zt)} of the neural network, and then merging the predictions via 
+xˆ = σ2t x˜θ(zt) + αt(zt − σt epsilon˜θ(zt)), thus
+smoothly interpolating between predicting x directly and predicting via epsilon.
+
+
+'''
 
 def main(args):
     torch.manual_seed(args.seed)
@@ -108,25 +118,27 @@ def main(args):
                 total_steps=0
                 for e in range(args.epochs):
                     avg_loss=0.0
-                    for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                        with accelerator.accumulate(student_pipeline.unet):
-                            pass
-                            #TODO prepare and clone latents
-                            #STUDENT:
-                            # expand the latents if we are doing classifier free guidance
-                            # predict the noise residual
-                            # compute the previous noisy sample x_t -> x_t-1
-                            
-                            #TEACHER:
-                            # expand the latents if we are doing classifier free guidance
-                            # predict the noise residual
-                            # compute the previous noisy sample x_t -> x_t-1
-                            #then REPEAT
-                            #compute loss
-                            
-                            #logging
-                            #optimization step
-                    #check if avg loss<convergence
+                    if args.prediction_method==REVERSE:
+                        for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                            with accelerator.accumulate(student_pipeline.unet):
+                                pass
+                                #TODO prepare and clone latents
+                                #iterate through timesteps
+                                #STUDENT:
+                                # expand the latents if we are doing classifier free guidance
+                                # predict the noise residual
+                                # compute the previous noisy sample x_t -> x_t-1
+                                
+                                #TEACHER:
+                                # expand the latents if we are doing classifier free guidance
+                                # predict the noise residual
+                                # compute the previous noisy sample x_t -> x_t-1
+                                #then REPEAT
+                                #compute loss
+                                
+                                #logging
+                                #optimization step
+                        #check if avg loss<convergence
                 #metrics
 
 
