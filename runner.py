@@ -120,9 +120,12 @@ def main(args):
                     avg_loss=0.0
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                            #TODO prepare and clone latents
+                            positive=positive.to(accelerator.device)
+                            negative=negative.to(accelerator.device)
                             with accelerator.accumulate(student_pipeline.unet):
                                 pass
-                                #TODO prepare and clone latents
+                                
                                 #iterate through timesteps
                                 #STUDENT:
                                 # expand the latents if we are doing classifier free guidance
