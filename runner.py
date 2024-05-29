@@ -135,9 +135,8 @@ def main(args):
                                 args.size,
                                 positive.dtype,
                                 accelerator.device,
-                                generator,
-                                None,
-                            )
+                                generator)
+                            teacher_latents=student_latents.detach().clone()
                             positive=positive.to(accelerator.device)
                             negative=negative.to(accelerator.device)
                             with accelerator.accumulate(student_pipeline.unet):
