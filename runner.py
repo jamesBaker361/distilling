@@ -29,6 +29,7 @@ parser.add_argument("--convergence_threshold",type=float,default=0.001,help="sto
 parser.add_argument("--do_classifier_free_guidance",action="store_true")
 parser.add_argument("--seed",type=int,default=123)
 parser.add_argument("--prediction_method",type=str,default=REVERSE)
+parser.add_argument("--size",type=int,default=512)
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 '''
@@ -62,6 +63,10 @@ def main(args):
                     training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject))
         print(training_prompt_list)
         if args.method_name==PROGRESSIVE:
+
+            generator=torch.Generator(accelerator.device)
+            generator.manual_seed(args.seed)
+
             print("effective batch size = ",args.batch_size* args.gradient_accumulation_steps)
             teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
@@ -123,6 +128,16 @@ def main(args):
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
                             #TODO prepare and clone latents
+                            student_latents = student_pipeline.prepare_latents(
+                                args.batch_size,
+                                num_channels_latents,
+                                args.size,
+                                args.size,
+                                positive.dtype,
+                                accelerator.device,
+                                generator,
+                                None,
+                            )
                             positive=positive.to(accelerator.device)
                             negative=negative.to(accelerator.device)
                             with accelerator.accumulate(student_pipeline.unet):
