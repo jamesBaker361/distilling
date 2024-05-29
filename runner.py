@@ -7,6 +7,7 @@ from diffusers import StableDiffusionPipeline, DDIMScheduler
 import torch
 import random
 from distillation_helpers import reverse_step
+import torch.nn.functional as F
 
 parser=argparse.ArgumentParser()
 
@@ -33,6 +34,7 @@ parser.add_argument("--prediction_method",type=str,default=REVERSE)
 parser.add_argument("--size",type=int,default=512)
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
+#TODO SNR coefficien
 '''
 Predicting x directly.
 
@@ -68,7 +70,8 @@ def main(args):
             generator=torch.Generator(accelerator.device)
             generator.manual_seed(args.seed)
 
-            print("effective batch size = ",args.batch_size* args.gradient_accumulation_steps)
+            effective_batch_size=args.batch_size* args.gradient_accumulation_steps
+            print("effective batch size = ",effective_batch_size)
             teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             for pipeline in [teacher_pipeline,student_pipeline]:
@@ -125,9 +128,10 @@ def main(args):
                     eps=0.00000001)
                 total_steps=0
                 for e in range(args.epochs):
-                    avg_loss=0.0
+                    epoch_loss=0.0
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                            avg_loss=0.0
                             #TODO prepare and clone latents
                             student_latents = student_pipeline.prepare_latents(
                                 args.batch_size,
@@ -152,13 +156,22 @@ def main(args):
                                     student_latents=reverse_step(args,student_t,student_pipeline,student_latents,prompt_embeds, added_cond_kwargs)
                                     
                                     teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                    teacher_latents=reverse_step(args,teacher_t+1, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
+                                    teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i+1]
+                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
                                     
                                     #compute loss
-                                    
-                                    #logging
-                                    #optimization step
-                            #check if avg loss<convergence
+                                    loss=F.mse_loss(teacher_latents,student_latents,reduction="mean")
+                                    accelerator.backward(loss)
+                                    optimizer.step()
+                                    optimizer.zero_grad()
+                                    avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                            accelerator.log({
+                                "avg_loss_per_step_per_batch":avg_loss
+                            })
+                            epoch_loss+=avg_loss
+                        #check if epoch loss<convergence
+                        if epoch_loss/(e+1)<args.convergence_threshold:
+                            break
                 #metrics
 
 
