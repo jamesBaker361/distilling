@@ -71,7 +71,7 @@ def main(args):
                 pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             
             
-            #TODO: IP adapter preparation
+
             ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
                 image,
                 None,
@@ -92,6 +92,8 @@ def main(args):
                 negative_prompt_list.append(negative)
             negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
             positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
+
+            #TODO image preparation for forward process
 
             student_steps=args.initial_num_inference_steps//2
             num_channels_latents = teacher_pipeline.unet.config.in_channels
