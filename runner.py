@@ -33,6 +33,7 @@ parser.add_argument("--do_classifier_free_guidance",action="store_true")
 parser.add_argument("--seed",type=int,default=123)
 parser.add_argument("--prediction_method",type=str,default=REVERSE)
 parser.add_argument("--size",type=int,default=512)
+parser.add_argument("--use_negative_prompt",action="store_true")
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -97,7 +98,10 @@ def main(args):
                 i+=1
             positive_prompt_list=[]
             negative_prompt_list=[]
-            for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=NEGATIVE,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
+            negative_prompt=" "
+            if args.use_negative_prompt:
+                negative_prompt=NEGATIVE
+            for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=negative_prompt,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
                 print(type(positive),type(negative))
                 positive_prompt_list.append(positive)
                 negative_prompt_list.append(negative)
