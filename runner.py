@@ -73,15 +73,6 @@ def main(args):
         effective_batch_size=args.batch_size* args.gradient_accumulation_steps
         print("effective batch size = ",effective_batch_size)
 
-        ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
-                image,
-                None,
-                "cpu",
-                1,
-                args.do_classifier_free_guidance,
-            )[0]
-        added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
-
         i=0 #prompt stuff preparation
         while len(training_prompt_list)%args.batch_size!=0:
             training_prompt_list.append(training_prompt_list[i])
@@ -111,7 +102,14 @@ def main(args):
                 pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             
             
-            #TODO image preparation for forward process
+            ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
+                image,
+                None,
+                "cpu",
+                1,
+                args.do_classifier_free_guidance,
+            )[0]
+            added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
 
             student_steps=args.initial_num_inference_steps//2
             num_channels_latents = teacher_pipeline.unet.config.in_channels
