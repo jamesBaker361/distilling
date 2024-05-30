@@ -34,6 +34,7 @@ parser.add_argument("--seed",type=int,default=123)
 parser.add_argument("--prediction_method",type=str,default=REVERSE)
 parser.add_argument("--size",type=int,default=512)
 parser.add_argument("--use_negative_prompt",action="store_true")
+parser.add_argument("--guidance_scale",type=float,default=7.5)
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
