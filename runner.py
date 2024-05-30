@@ -87,8 +87,8 @@ def main(args):
                 "cpu",
                 1,
                 args.do_classifier_free_guidance,
-            )
-            added_cond_kwargs ={"image_embeds":ip_adapter_image_embeds.to(accelerator.device)}
+            )[0]
+            added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
 
             i=0 #prompt stuff preparation
             while len(training_prompt_list)%args.batch_size!=0:
@@ -101,7 +101,10 @@ def main(args):
                 positive_prompt_list.append(positive)
                 negative_prompt_list.append(negative)
             print(len(positive_prompt_list), len(negative_prompt_list))
-            negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
+            if args.do_classifer_free_guidance:
+                negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
+            else:
+                negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
             positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
 
             #TODO image preparation for forward process
@@ -145,8 +148,9 @@ def main(args):
                                 generator)
                             teacher_latents=student_latents.detach().clone()
                             positive=positive.to(accelerator.device)
-                            negative=negative.to(accelerator.device)
+                            
                             if args.do_classifier_free_guidance:
+                                negative=negative.to(accelerator.device)
                                 prompt_embeds = torch.cat([negative, positive])
                             else:
                                 prompt_embeds=positive
