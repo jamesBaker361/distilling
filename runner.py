@@ -65,7 +65,7 @@ def main(args):
         for descriptor in decriptor_list:
             for location in location_list:
                 for activity in activity_list:
-                    training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject))
+                    training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject).replace("  "," ").replace("  "," "))
         print(training_prompt_list)
         if args.method_name==PROGRESSIVE:
 
