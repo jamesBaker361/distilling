@@ -97,8 +97,10 @@ def main(args):
             positive_prompt_list=[]
             negative_prompt_list=[]
             for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=NEGATIVE,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
+                print(type(positive),type(negative))
                 positive_prompt_list.append(positive)
                 negative_prompt_list.append(negative)
+            print(len(positive_prompt_list), len(negative_prompt_list))
             negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
             positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
 
