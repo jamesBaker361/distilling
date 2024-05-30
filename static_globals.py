@@ -1,3 +1,6 @@
 PROGRESSIVE="progressive"
+CONSISTENCY="consistency"
+CYCLE_GAN="cycle_gan"
 NEGATIVE="blurry, ugly, low quality, jpeg"
 REVERSE="reverse"
+FORWARD="forward"
