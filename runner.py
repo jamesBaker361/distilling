@@ -84,11 +84,11 @@ def main(args):
             ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
                 image,
                 None,
-                accelerator.device,
+                "cpu",
                 1,
                 args.do_classifier_free_guidance,
             )
-            added_cond_kwargs ={"image_embeds":ip_adapter_image_embeds}
+            added_cond_kwargs ={"image_embeds":ip_adapter_image_embeds.to(accelerator.device)}
 
             i=0 #prompt stuff preparation
             while len(training_prompt_list)%args.batch_size!=0:
@@ -96,7 +96,7 @@ def main(args):
                 i+=1
             positive_prompt_list=[]
             negative_prompt_list=[]
-            for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=NEGATIVE,do_classifier_free_guidance=args.do_classifier_free_guidance) for prompt in  training_prompt_list]:
+            for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=NEGATIVE,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
                 positive_prompt_list.append(positive)
                 negative_prompt_list.append(negative)
             negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
