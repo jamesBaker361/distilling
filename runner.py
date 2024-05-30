@@ -175,6 +175,7 @@ def main(args):
                                 "avg_loss_per_step_per_batch":avg_loss
                             })
                             epoch_loss+=avg_loss
+                        student_steps=student_steps//2
                         #check if epoch loss<convergence
                         if epoch_loss/(e+1)<args.convergence_threshold:
                             break
