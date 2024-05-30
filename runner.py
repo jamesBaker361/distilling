@@ -102,7 +102,7 @@ def main(args):
                 positive_prompt_list.append(positive)
                 negative_prompt_list.append(negative)
             print(len(positive_prompt_list), len(negative_prompt_list))
-            if args.do_classifer_free_guidance:
+            if args.do_classifier_free_guidance:
                 negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
             else:
                 negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
