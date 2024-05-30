@@ -75,7 +75,7 @@ def main(args):
 
         teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
         teacher_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-        teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
+        teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
 
@@ -111,7 +111,7 @@ def main(args):
         if args.method_name==PROGRESSIVE:
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-            student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
+            student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
             student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             
@@ -122,6 +122,7 @@ def main(args):
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
                 student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+                student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
                 student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
                 student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
                 student_pipeline.scheduler.set_timesteps(student_steps)
@@ -193,7 +194,18 @@ def main(args):
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
                 #metrics
-
+        if args.method_name==CYCLE_GAN:
+            noise_list=[]
+            image_list=[]
+            for prompt in training_prompt_list:
+                noise_latents=teacher_pipeline.prepare_latents(
+                                    args.batch_size,
+                                    num_channels_latents,
+                                    args.size,
+                                    args.size,
+                                    positive.dtype,
+                                    accelerator.device,
+                                    generator)
 
 if __name__=='__main__':
     print_details()
