@@ -67,13 +67,42 @@ def main(args):
                 for activity in activity_list:
                     training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject).replace("  "," ").replace("  "," "))
         print(training_prompt_list)
+        generator=torch.Generator(accelerator.device)
+        generator.manual_seed(args.seed)
+
+        effective_batch_size=args.batch_size* args.gradient_accumulation_steps
+        print("effective batch size = ",effective_batch_size)
+
+        ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
+                image,
+                None,
+                "cpu",
+                1,
+                args.do_classifier_free_guidance,
+            )[0]
+        added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
+
+        i=0 #prompt stuff preparation
+        while len(training_prompt_list)%args.batch_size!=0:
+            training_prompt_list.append(training_prompt_list[i])
+            i+=1
+        positive_prompt_list=[]
+        negative_prompt_list=[]
+        negative_prompt=" "
+        if args.use_negative_prompt:
+            negative_prompt=NEGATIVE
+        for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=negative_prompt,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
+            print(type(positive),type(negative))
+            positive_prompt_list.append(positive)
+            negative_prompt_list.append(negative)
+        print(len(positive_prompt_list), len(negative_prompt_list))
+        if args.do_classifier_free_guidance:
+            negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
+        else:
+            negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
+        positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
+
         if args.method_name==PROGRESSIVE:
-
-            generator=torch.Generator(accelerator.device)
-            generator.manual_seed(args.seed)
-
-            effective_batch_size=args.batch_size* args.gradient_accumulation_steps
-            print("effective batch size = ",effective_batch_size)
             teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             for pipeline in [teacher_pipeline,student_pipeline]:
@@ -82,36 +111,6 @@ def main(args):
                 pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             
             
-
-            ip_adapter_image_embeds = student_pipeline.prepare_ip_adapter_image_embeds(
-                image,
-                None,
-                "cpu",
-                1,
-                args.do_classifier_free_guidance,
-            )[0]
-            added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
-
-            i=0 #prompt stuff preparation
-            while len(training_prompt_list)%args.batch_size!=0:
-                training_prompt_list.append(training_prompt_list[i])
-                i+=1
-            positive_prompt_list=[]
-            negative_prompt_list=[]
-            negative_prompt=" "
-            if args.use_negative_prompt:
-                negative_prompt=NEGATIVE
-            for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=negative_prompt,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
-                print(type(positive),type(negative))
-                positive_prompt_list.append(positive)
-                negative_prompt_list.append(negative)
-            print(len(positive_prompt_list), len(negative_prompt_list))
-            if args.do_classifier_free_guidance:
-                negative_prompt_list_batched=[torch.cat(negative_prompt_list[i:i+args.batch_size]) for i in range(0,len(negative_prompt_list),args.batch_size)]
-            else:
-                negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
-            positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
-
             #TODO image preparation for forward process
 
             student_steps=args.initial_num_inference_steps//2
