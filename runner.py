@@ -137,30 +137,31 @@ def main(args):
                     start=time.time()
                     epoch_loss=0.0
                     if args.prediction_method==REVERSE:
-                        for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                            avg_loss=0.0
-                            #TODO prepare and clone latents
-                            student_latents = student_pipeline.prepare_latents(
-                                args.batch_size,
-                                num_channels_latents,
-                                args.size,
-                                args.size,
-                                positive.dtype,
-                                accelerator.device,
-                                generator)
-                            teacher_latents=student_latents.detach().clone()
-                            positive=positive.to(accelerator.device)
-                            
-                            if args.do_classifier_free_guidance:
-                                negative=negative.to(accelerator.device)
-                                prompt_embeds = torch.cat([negative, positive])
-                            else:
-                                prompt_embeds=positive
-                            for student_i in range(len(student_pipeline.scheduler.timesteps)):
-                                student_t=student_pipeline.scheduler.timesteps[student_i]
-                                teacher_i=2*student_i
-                                teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
-                                with accelerator.accumulate(student_pipeline.unet):
+                        with accelerator.accumulate(student_pipeline.unet):
+                            for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                                avg_loss=0.0
+                                #TODO prepare and clone latents
+                                student_latents = student_pipeline.prepare_latents(
+                                    args.batch_size,
+                                    num_channels_latents,
+                                    args.size,
+                                    args.size,
+                                    positive.dtype,
+                                    accelerator.device,
+                                    generator)
+                                teacher_latents=student_latents.detach().clone()
+                                positive=positive.to(accelerator.device)
+                                
+                                if args.do_classifier_free_guidance:
+                                    negative=negative.to(accelerator.device)
+                                    prompt_embeds = torch.cat([negative, positive])
+                                else:
+                                    prompt_embeds=positive
+                                for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                                    student_t=student_pipeline.scheduler.timesteps[student_i]
+                                    teacher_i=2*student_i
+                                    teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
+            
                                     student_latents=reverse_step(args,student_t,student_pipeline,student_latents,prompt_embeds, added_cond_kwargs)
                                     
                                     teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
@@ -173,11 +174,14 @@ def main(args):
                                     optimizer.step()
                                     optimizer.zero_grad()
                                     avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                            accelerator.log({
-                                "avg_loss_per_step_per_batch":avg_loss
-                            })
-                            epoch_loss+=avg_loss
+                                accelerator.log({
+                                    "avg_loss_per_step_per_sample":avg_loss
+                                })
+                                epoch_loss+=avg_loss
                         student_steps=student_steps//2
+                        accelerator.log({
+                            "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
+                        })
                         #check if epoch loss<convergence
                         if epoch_loss/(e+1)<args.convergence_threshold:
                             break
