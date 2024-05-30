@@ -8,6 +8,7 @@ import torch
 import random
 from distillation_helpers import reverse_step
 import torch.nn.functional as F
+import time
 
 parser=argparse.ArgumentParser()
 
@@ -133,6 +134,7 @@ def main(args):
                     eps=0.00000001)
                 total_steps=0
                 for e in range(args.epochs):
+                    start=time.time()
                     epoch_loss=0.0
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
@@ -179,6 +181,8 @@ def main(args):
                         #check if epoch loss<convergence
                         if epoch_loss/(e+1)<args.convergence_threshold:
                             break
+                    end=time.time()
+                    print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
                 #metrics
 
 
