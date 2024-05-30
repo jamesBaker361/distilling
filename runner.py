@@ -98,6 +98,7 @@ def main(args):
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             for pipeline in [teacher_pipeline,student_pipeline]:
                 pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+                pipeline("do this to help instantiate proerties",num_inference_steps=1)
                 pipeline.scheduler=DDIMScheduler.from_config(pipeline.scheduler.config)
                 pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             
