@@ -67,7 +67,7 @@ def main(args):
             for location in location_list:
                 for activity in activity_list:
                     training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject).replace("  "," ").replace("  "," "))
-        print(training_prompt_list)
+        #print(training_prompt_list)
         generator=torch.Generator(accelerator.device)
         generator.manual_seed(args.seed)
 
@@ -90,7 +90,7 @@ def main(args):
         if args.use_negative_prompt:
             negative_prompt=NEGATIVE
         for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=negative_prompt,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
-            print(type(positive),type(negative))
+            #print(type(positive),type(negative))
             positive_prompt_list.append(positive)
             negative_prompt_list.append(negative)
         print(len(positive_prompt_list), len(negative_prompt_list))
