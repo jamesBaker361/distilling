@@ -35,6 +35,7 @@ parser.add_argument("--prediction_method",type=str,default=REVERSE)
 parser.add_argument("--size",type=int,default=512)
 parser.add_argument("--use_negative_prompt",action="store_true")
 parser.add_argument("--guidance_scale",type=float,default=7.5)
+parser.add_argument("--shuffle",action="store_true")
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -199,6 +200,7 @@ def main(args):
         if args.method_name==CYCLE_GAN:
             noise_list=[]
             image_list=[]
+
             for prompt in training_prompt_list:
                 noise_latents=teacher_pipeline.prepare_latents(
                                     args.batch_size,
@@ -208,6 +210,13 @@ def main(args):
                                     positive.dtype,
                                     accelerator.device,
                                     generator)
+                noise_list.append(noise_latents)
+                image_latents=teacher_pipeline(prompt,latents=noise_latents,
+                                               num_inference_steps=args.initial_num_inference_steps,
+                                               negative_prompt=negative_prompt,ip_adapter_image=image,output_type="latent")
+                image_list.append(image_latents)
+                if args.shuffle:
+                    random.shuffle(image_list)
 
 if __name__=='__main__':
     print_details()
