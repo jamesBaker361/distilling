@@ -4,10 +4,6 @@ import git
 from git import Repo
 
 def print_details():
-    repo = Repo(os.getcwd())
-    branch = repo.active_branch
-    branch = branch.name
-    print("git branch ",branch)
     for slurm_var in ["SLURMD_NODENAME","SBATCH_CLUSTERS", 
                       "SBATCH_PARTITION","SLURM_JOB_PARTITION",
                       "SLURM_NODEID","SLURM_MEM_PER_GPU",
