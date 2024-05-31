@@ -119,6 +119,7 @@ def main(args):
             student_steps=args.initial_num_inference_steps//2
             num_channels_latents = teacher_pipeline.unet.config.in_channels
             while student_steps>=args.final_num_inference_steps:
+                accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
@@ -144,8 +145,8 @@ def main(args):
                     start=time.time()
                     epoch_loss=0.0
                     if args.prediction_method==REVERSE:
-                        with accelerator.accumulate(student_pipeline.unet):
-                            for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                        for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                            with accelerator.accumulate(student_pipeline.unet):
                                 avg_loss=0.0
                                 #TODO prepare and clone latents
                                 student_latents = student_pipeline.prepare_latents(
