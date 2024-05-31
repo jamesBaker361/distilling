@@ -6,7 +6,7 @@ from accelerate import Accelerator
 from diffusers import StableDiffusionPipeline, DDIMScheduler
 import torch
 import random
-from distillation_helpers import reverse_step
+from distillation_helpers import reverse_step, clone_pipeline
 import torch.nn.functional as F
 import time
 
@@ -36,6 +36,7 @@ parser.add_argument("--size",type=int,default=512)
 parser.add_argument("--use_negative_prompt",action="store_true")
 parser.add_argument("--guidance_scale",type=float,default=7.5)
 parser.add_argument("--shuffle",action="store_true")
+parser.add_argument("--pretrain_noise_pipeline",action="store_true")
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -203,20 +204,25 @@ def main(args):
 
             for prompt in training_prompt_list:
                 noise_latents=teacher_pipeline.prepare_latents(
-                                    args.batch_size,
+                                    1,
                                     num_channels_latents,
                                     args.size,
                                     args.size,
                                     positive.dtype,
-                                    accelerator.device,
+                                    "cpu",
                                     generator)
                 noise_list.append(noise_latents)
                 image_latents=teacher_pipeline(prompt,latents=noise_latents,
                                                num_inference_steps=args.initial_num_inference_steps,
                                                negative_prompt=negative_prompt,ip_adapter_image=image,output_type="latent")
                 image_list.append(image_latents)
-                if args.shuffle:
-                    random.shuffle(image_list)
+            if args.shuffle:
+                random.shuffle(image_list)
+            noise_list_batched=[noise[i:i+args.batch_size] for noise in noise_list]
+            image_list_batched=[image[i:i+args.batch_size] for image in image_list]
+
+            image_pipeline=teacher_pipeline
+            noise_pipeline=clone_pipeline(image_pipeline)
 
 if __name__=='__main__':
     print_details()
