@@ -130,7 +130,6 @@ def main(args):
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
                 student_pipeline.unet.to(accelerator.device)
-                teacher_pipeline.unet.to(accelerator.device)
 
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
@@ -146,26 +145,27 @@ def main(args):
                     epoch_loss=0.0
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                            with accelerator.accumulate(student_pipeline.unet):
-                                avg_loss=0.0
-                                #TODO prepare and clone latents
-                                student_latents = student_pipeline.prepare_latents(
-                                    args.batch_size,
-                                    num_channels_latents,
-                                    args.size,
-                                    args.size,
-                                    positive.dtype,
-                                    accelerator.device,
-                                    generator)
-                                teacher_latents=student_latents.detach().clone()
-                                positive=positive.to(accelerator.device)
-                                
-                                if args.do_classifier_free_guidance:
-                                    negative=negative.to(accelerator.device)
-                                    prompt_embeds = torch.cat([negative, positive])
-                                else:
-                                    prompt_embeds=positive
-                                for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                            #with accelerator.accumulate(student_pipeline.unet):
+                            avg_loss=0.0
+                            #TODO prepare and clone latents
+                            student_latents = student_pipeline.prepare_latents(
+                                args.batch_size,
+                                num_channels_latents,
+                                args.size,
+                                args.size,
+                                positive.dtype,
+                                accelerator.device,
+                                generator)
+                            teacher_latents=student_latents.detach().clone()
+                            positive=positive.to(accelerator.device)
+                            
+                            if args.do_classifier_free_guidance:
+                                negative=negative.to(accelerator.device)
+                                prompt_embeds = torch.cat([negative, positive])
+                            else:
+                                prompt_embeds=positive
+                            for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                                with accelerator.accumulate(student_pipeline.unet):
                                     student_t=student_pipeline.scheduler.timesteps[student_i]
                                     teacher_i=2*student_i
                                     teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
@@ -182,10 +182,10 @@ def main(args):
                                     optimizer.step()
                                     optimizer.zero_grad()
                                     avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                                accelerator.log({
-                                    "avg_loss_per_step_per_sample":avg_loss
-                                })
-                                epoch_loss+=avg_loss
+                            accelerator.log({
+                                "avg_loss_per_step_per_sample":avg_loss
+                            })
+                            epoch_loss+=avg_loss
                         student_steps=student_steps//2
                         accelerator.log({
                             "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
