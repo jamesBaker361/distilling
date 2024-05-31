@@ -1,7 +1,5 @@
 import os
 import torch
-import git
-from git import Repo
 
 def print_details():
     for slurm_var in ["SLURMD_NODENAME","SBATCH_CLUSTERS", 
