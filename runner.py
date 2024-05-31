@@ -180,7 +180,7 @@ def main(args):
                                     
                                     #compute loss
                                     loss=F.mse_loss(teacher_latents,student_latents,reduction="mean")
-                                    accelerator.backward(loss)
+                                    accelerator.backward(loss,retain_graph=True)
                                     optimizer.step()
                                     optimizer.zero_grad()
                                     avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
