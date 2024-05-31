@@ -1,7 +1,12 @@
 import os
 import torch
+import subprocess
 
 def print_details():
+    process = subprocess.Popen(["git", "branch", "--show-current"], stdout=subprocess.PIPE)
+    branch_name, branch_error = process.communicate()
+    print("branch_name",branch_name)
+    print("branch_error", branch_error)
     for slurm_var in ["SLURMD_NODENAME","SBATCH_CLUSTERS", 
                       "SBATCH_PARTITION","SLURM_JOB_PARTITION",
                       "SLURM_NODEID","SLURM_MEM_PER_GPU",
