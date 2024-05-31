@@ -68,7 +68,7 @@ def main(args):
             for location in location_list:
                 for activity in activity_list:
                     training_prompt_list.append(f"{descriptor} {activity} {location}".format(subject).replace("  "," ").replace("  "," "))
-        print(training_prompt_list)
+        #print(training_prompt_list)
         generator=torch.Generator(accelerator.device)
         generator.manual_seed(args.seed)
 
@@ -91,7 +91,7 @@ def main(args):
         if args.use_negative_prompt:
             negative_prompt=NEGATIVE
         for positive,negative in [teacher_pipeline.encode_prompt(prompt=prompt,negative_prompt=negative_prompt,do_classifier_free_guidance=args.do_classifier_free_guidance,device="cpu",num_images_per_prompt=1) for prompt in  training_prompt_list]:
-            print(type(positive),type(negative))
+            #print(type(positive),type(negative))
             positive_prompt_list.append(positive)
             negative_prompt_list.append(negative)
         print(len(positive_prompt_list), len(negative_prompt_list))
@@ -131,7 +131,6 @@ def main(args):
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
                 student_pipeline.unet.to(accelerator.device)
-                teacher_pipeline.unet.to(accelerator.device)
 
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
@@ -147,26 +146,27 @@ def main(args):
                     epoch_loss=0.0
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                            with accelerator.accumulate(student_pipeline.unet):
-                                avg_loss=0.0
-                                #TODO prepare and clone latents
-                                student_latents = student_pipeline.prepare_latents(
-                                    args.batch_size,
-                                    num_channels_latents,
-                                    args.size,
-                                    args.size,
-                                    positive.dtype,
-                                    accelerator.device,
-                                    generator)
-                                teacher_latents=student_latents.detach().clone()
-                                positive=positive.to(accelerator.device)
-                                
-                                if args.do_classifier_free_guidance:
-                                    negative=negative.to(accelerator.device)
-                                    prompt_embeds = torch.cat([negative, positive])
-                                else:
-                                    prompt_embeds=positive
-                                for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                            #with accelerator.accumulate(student_pipeline.unet):
+                            avg_loss=0.0
+                            #TODO prepare and clone latents
+                            student_latents = student_pipeline.prepare_latents(
+                                args.batch_size,
+                                num_channels_latents,
+                                args.size,
+                                args.size,
+                                positive.dtype,
+                                accelerator.device,
+                                generator)
+                            teacher_latents=student_latents.detach().clone()
+                            positive=positive.to(accelerator.device)
+                            
+                            if args.do_classifier_free_guidance:
+                                negative=negative.to(accelerator.device)
+                                prompt_embeds = torch.cat([negative, positive])
+                            else:
+                                prompt_embeds=positive
+                            for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                                with accelerator.accumulate(student_pipeline.unet):
                                     student_t=student_pipeline.scheduler.timesteps[student_i]
                                     teacher_i=2*student_i
                                     teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
@@ -183,19 +183,19 @@ def main(args):
                                     optimizer.step()
                                     optimizer.zero_grad()
                                     avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                                accelerator.log({
-                                    "avg_loss_per_step_per_sample":avg_loss
-                                })
-                                epoch_loss+=avg_loss
-                        student_steps=student_steps//2
-                        accelerator.log({
-                            "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
-                        })
-                        #check if epoch loss<convergence
-                        if epoch_loss/(e+1)<args.convergence_threshold:
-                            break
+                            accelerator.log({
+                                "avg_loss_per_step_per_sample":avg_loss
+                            })
+                            epoch_loss+=avg_loss
+                    student_steps=student_steps//2
+                    accelerator.log({
+                        "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
+                    })
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
+                    #check if epoch loss<convergence
+                    if epoch_loss/(e+1)<args.convergence_threshold:
+                        break
                 #metrics
         if args.method_name==CYCLE_GAN:
             noise_list=[]
