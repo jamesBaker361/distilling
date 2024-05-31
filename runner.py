@@ -186,15 +186,15 @@ def main(args):
                                 "avg_loss_per_step_per_sample":avg_loss
                             })
                             epoch_loss+=avg_loss
-                        student_steps=student_steps//2
-                        accelerator.log({
-                            "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
-                        })
-                        #check if epoch loss<convergence
-                        if epoch_loss/(e+1)<args.convergence_threshold:
-                            break
+                    student_steps=student_steps//2
+                    accelerator.log({
+                        "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
+                    })
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
+                    #check if epoch loss<convergence
+                    if epoch_loss/(e+1)<args.convergence_threshold:
+                        break
                 #metrics
         if args.method_name==CYCLE_GAN:
             noise_list=[]
