@@ -117,6 +117,7 @@ def main(args):
             student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
             student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
+            student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             
             student_steps=args.initial_num_inference_steps//2
             num_channels_latents = teacher_pipeline.unet.config.in_channels
@@ -131,7 +132,7 @@ def main(args):
                 student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
-                student_pipeline.unet.to(accelerator.device)
+                student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
 
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
@@ -197,6 +198,8 @@ def main(args):
                     #check if epoch loss<convergence
                     if epoch_loss/(e+1)<args.convergence_threshold:
                         break
+                accelerator.free_memory()
+                torch.cuda.empty_cache()
                 #metrics
         if args.method_name==CYCLE_GAN:
             noise_list=[]
