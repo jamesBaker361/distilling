@@ -9,6 +9,11 @@ import random
 from distillation_helpers import reverse_step, clone_pipeline
 import torch.nn.functional as F
 import time
+from datetime import datetime
+
+# getting the current date and time
+current_datetime = datetime.now()
+
 
 parser=argparse.ArgumentParser()
 
@@ -51,6 +56,8 @@ smoothly interpolating between predicting x directly and predicting via epsilon.
 '''
 
 def main(args):
+    current_date_time = current_datetime.strftime("%m/%d/%Y, %H:%M:%S")
+    print("current date and time = ",current_date_time)
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     data=load_dataset(args.dataset,split="train")
