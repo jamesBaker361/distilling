@@ -14,6 +14,7 @@ from datetime import datetime
 # getting the current date and time
 current_datetime = datetime.now()
 
+torch.autograd.set_detect_anomaly(True)
 
 parser=argparse.ArgumentParser()
 
