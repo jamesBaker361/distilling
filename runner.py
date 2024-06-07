@@ -231,7 +231,7 @@ def main(args):
                 accelerator.free_memory()
                 torch.cuda.empty_cache()
                 #metrics
-        if args.method_name==CYCLE_GAN:
+        elif args.method_name==CYCLE_GAN:
             noise_list=[]
             image_list=[]
 
