@@ -44,6 +44,7 @@ parser.add_argument("--use_negative_prompt",action="store_true")
 parser.add_argument("--guidance_scale",type=float,default=7.5)
 parser.add_argument("--shuffle",action="store_true")
 parser.add_argument("--pretrain_noise_pipeline",action="store_true")
+parser.add_argument("--use_ip_adapter",action="store_true")
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -86,11 +87,14 @@ def main(args):
         print("effective batch size = ",effective_batch_size)
 
         teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
-        teacher_pipeline=better_load_ip_adapter(
-            teacher_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
-        )
-        #teacher_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-        teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+        if args.use_ip_adapter:
+            teacher_pipeline=better_load_ip_adapter(
+                teacher_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
+            )
+            #teacher_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+            teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+        else:
+            teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
 
@@ -113,23 +117,28 @@ def main(args):
         else:
             negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
         positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
-
-        ip_adapter_image_embeds = teacher_pipeline.prepare_ip_adapter_image_embeds(
-                image,
-                None,
-                "cpu",
-                1,
-                args.do_classifier_free_guidance,
-            )[0]
-        added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
+        if args.use_ip_adapter:
+            ip_adapter_image_embeds = teacher_pipeline.prepare_ip_adapter_image_embeds(
+                    image,
+                    None,
+                    "cpu",
+                    1,
+                    args.do_classifier_free_guidance,
+                )[0]
+            added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
+        else:
+            added_cond_kwargs ={}
 
         if args.method_name==PROGRESSIVE:
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
-            student_pipeline=better_load_ip_adapter(
-                student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
-            )
-            #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-            student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+            if args.use_ip_adapter:
+                student_pipeline=better_load_ip_adapter(
+                    student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
+                )
+                #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+                student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+            else:
+                student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
             student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
@@ -141,10 +150,14 @@ def main(args):
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
-                student_pipeline=better_load_ip_adapter(
-                    student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
-                )
-                student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+                if args.use_ip_adapter:
+                    student_pipeline=better_load_ip_adapter(
+                        student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
+                    )
+                    #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+                    student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+                else:
+                    student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
                 student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
                 student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
                 student_pipeline.scheduler.set_timesteps(student_steps)
