@@ -128,7 +128,8 @@ def main(args):
             added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
         else:
             added_cond_kwargs ={}
-
+        print("len prompt list",len(positive_prompt_list))
+        print("len batched ",len(positive_prompt_list_batched))
         if args.method_name==PROGRESSIVE:
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             if args.use_ip_adapter:
@@ -147,6 +148,7 @@ def main(args):
             num_channels_latents = teacher_pipeline.unet.config.in_channels
             while student_steps>=args.final_num_inference_steps:
                 accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
+                print("effective batch size ",accelerator.gradient_accumulation_steps * args.batch_size)
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
@@ -189,8 +191,10 @@ def main(args):
                                 positive.dtype,
                                 accelerator.device,
                                 generator)
-                            teacher_latents=student_latents.detach().clone()
+                            teacher_latents=student_latents.clone()
+                            teacher_latents_plus=student_latents.clone()
                             positive=positive.to(accelerator.device)
+                            print("latennts size",student_latents.size())
                             
                             if args.do_classifier_free_guidance:
                                 negative=negative.to(accelerator.device)
@@ -199,18 +203,22 @@ def main(args):
                                 prompt_embeds=positive
                             for student_i in range(len(student_pipeline.scheduler.timesteps)):
                                 with accelerator.accumulate(student_pipeline.unet):
+                                    print("prompt embeds size",prompt_embeds.size())
+
+                                    start_latents=teacher_latents_plus.clone()
+
                                     student_t=student_pipeline.scheduler.timesteps[student_i]
                                     teacher_i=2*student_i
                                     teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
             
-                                    student_latents=reverse_step(args,student_t,student_pipeline,student_latents,prompt_embeds, added_cond_kwargs)
+                                    student_latents=reverse_step(args,student_t,student_pipeline,start_latents,prompt_embeds, added_cond_kwargs)
                                     
-                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                    teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i+1]
-                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                    
+                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, start_latents, prompt_embeds, added_cond_kwargs)
+                                    teacher_t_plus=teacher_pipeline.scheduler.timesteps[teacher_i+1]
+                                    teacher_latents_plus=reverse_step(args,teacher_t_plus, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
+                                    print(student_t, teacher_t, teacher_t_plus)
                                     #compute loss
-                                    loss=F.mse_loss(teacher_latents,student_latents,reduction="mean")
+                                    loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
                                     accelerator.backward(loss,retain_graph=True)
                                     optimizer.step()
                                     optimizer.zero_grad()
