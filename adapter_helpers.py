@@ -232,7 +232,7 @@ def better_load_ip_adapter(
     unet = getattr(self, self.unet_name) if not hasattr(self, "unet") else self.unet
     self.unet=better_load_ip_adapter_weights(unet,state_dicts, low_cpu_mem_usage=low_cpu_mem_usage)
 
-    extra_loras = unet._load_ip_adapter_loras(state_dicts)
+    '''extra_loras = unet._load_ip_adapter_loras(state_dicts)
     if extra_loras != {}:
         if not USE_PEFT_BACKEND:
             logger.warning("PEFT backend is required to load these weights.")
@@ -242,5 +242,5 @@ def better_load_ip_adapter(
             for k, lora in extra_loras.items():
                 if f"faceid_{k}" not in peft_config:
                     self.load_lora_weights(lora, adapter_name=f"faceid_{k}")
-                    self.set_adapters([f"faceid_{k}"], adapter_weights=[1.0])
+                    self.set_adapters([f"faceid_{k}"], adapter_weights=[1.0])'''
     return self
