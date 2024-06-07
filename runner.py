@@ -227,7 +227,6 @@ def main(args):
                                 "avg_loss_per_step_per_sample":avg_loss
                             })
                             epoch_loss+=avg_loss
-                    student_steps=student_steps//2
                     accelerator.log({
                         "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
                     })
@@ -236,6 +235,7 @@ def main(args):
                     #check if epoch loss<convergence
                     if epoch_loss/(e+1)<args.convergence_threshold:
                         break
+                student_steps=student_steps//2
                 accelerator.free_memory()
                 torch.cuda.empty_cache()
                 #metrics
