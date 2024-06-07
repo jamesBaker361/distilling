@@ -256,6 +256,8 @@ def main(args):
 
             image_pipeline=teacher_pipeline
             noise_pipeline=clone_pipeline(image_pipeline)
+        elif args.method_name==TRACT:
+            pass
 
 if __name__=='__main__':
     print_details()

@@ -1,5 +1,6 @@
 PROGRESSIVE="progressive"
 CONSISTENCY="consistency"
+TRACT="tract"
 CYCLE_GAN="cycle_gan"
 NEGATIVE="blurry, ugly, low quality, jpeg"
 REVERSE="reverse"
