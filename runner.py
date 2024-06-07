@@ -194,7 +194,7 @@ def main(args):
                             teacher_latents=student_latents.clone()
                             teacher_latents_plus=student_latents.clone()
                             positive=positive.to(accelerator.device)
-                            print("latennts size",student_latents.size())
+                            #print("latennts size",student_latents.size())
                             
                             if args.do_classifier_free_guidance:
                                 negative=negative.to(accelerator.device)
@@ -203,7 +203,7 @@ def main(args):
                                 prompt_embeds=positive
                             for student_i in range(len(student_pipeline.scheduler.timesteps)):
                                 with accelerator.accumulate(student_pipeline.unet):
-                                    print("prompt embeds size",prompt_embeds.size())
+                                    #print("prompt embeds size",prompt_embeds.size())
 
                                     start_latents=teacher_latents_plus.clone()
 
@@ -216,13 +216,16 @@ def main(args):
                                     teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, start_latents, prompt_embeds, added_cond_kwargs)
                                     teacher_t_plus=teacher_pipeline.scheduler.timesteps[teacher_i+1]
                                     teacher_latents_plus=reverse_step(args,teacher_t_plus, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                    print(student_t, teacher_t, teacher_t_plus)
+                                    #print(student_t, teacher_t, teacher_t_plus)
                                     #compute loss
+                                    
                                     loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
+                                    avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                                    print(avg_loss)
                                     accelerator.backward(loss,retain_graph=True)
                                     optimizer.step()
                                     optimizer.zero_grad()
-                                    avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                                    #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             accelerator.log({
                                 "avg_loss_per_step_per_sample":avg_loss
                             })
