@@ -201,7 +201,7 @@ def main(args):
                                 prompt_embeds = torch.cat([negative, positive])
                             else:
                                 prompt_embeds=positive
-                            steps=[torch.tensor(1000)]+student_pipeline.scheduler.timesteps
+                            steps=student_pipeline.scheduler.timesteps
                             for student_i in range(len(steps)):
                                 with accelerator.accumulate(student_pipeline.unet):
                                     #print("prompt embeds size",prompt_embeds.size())
@@ -319,7 +319,8 @@ def main(args):
                         noise_pred_uncond, noise_pred_text = student_noise_pred.chunk(2)
                         student_noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
                     latents=start_latents.clone()
-                    steps=[torch.tensor(1000)]+teacher_pipeline.scheduler.timesteps
+                    steps=teacher_pipeline.scheduler.timesteps
+                    print(steps)
                     for teacher_t in steps:
                         with accelerator.accumulate(student_pipeline.unet):
                             latent_model_input = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
