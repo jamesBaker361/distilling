@@ -130,6 +130,7 @@ def main(args):
             added_cond_kwargs ={}
         print("len prompt list",len(positive_prompt_list))
         print("len batched ",len(positive_prompt_list_batched))
+        num_channels_latents = teacher_pipeline.unet.config.in_channels
         if args.method_name==PROGRESSIVE:
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
             if args.use_ip_adapter:
@@ -145,7 +146,7 @@ def main(args):
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             
             student_steps=args.initial_num_inference_steps//2
-            num_channels_latents = teacher_pipeline.unet.config.in_channels
+            
             while student_steps>=args.final_num_inference_steps:
                 accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
                 print("effective batch size ",accelerator.gradient_accumulation_steps * args.batch_size)
