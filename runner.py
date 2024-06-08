@@ -308,7 +308,7 @@ def main(args):
                         prompt_embeds=positive
 
                     student_noise_pred=student_pipeline.unet(
-                            latent_model_input,
+                            start_latents,
                             torch.tensor(1000),
                             encoder_hidden_states=prompt_embeds,
                             timestep_cond=None,
@@ -317,8 +317,8 @@ def main(args):
                             return_dict=False,
                     )[0]
                     if args.do_classifier_free_guidance:
-                        noise_pred_uncond, noise_pred_text = student_noise_pred.chunk(2)
-                        student_noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                        student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
+                        student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
                     latents=start_latents.clone()
                     steps=teacher_pipeline.scheduler.timesteps
                     print(steps)
