@@ -306,13 +306,13 @@ def main(args):
                         prompt_embeds = torch.cat([negative, positive])
                     else:
                         prompt_embeds=positive
-
+                    print("prompt_embeds size",prompt_embeds.size())
                     student_noise_pred=student_pipeline.unet(
                             start_latents,
                             torch.tensor(1000),
                             encoder_hidden_states=prompt_embeds,
                             timestep_cond=None,
-                            cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
+                            cross_attention_kwargs=student_pipeline.cross_attention_kwargs,
                             added_cond_kwargs=added_cond_kwargs,
                             return_dict=False,
                     )[0]
@@ -320,12 +320,14 @@ def main(args):
                         student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                         student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
                     latents=start_latents.clone()
+                    print("inital latents size",latents.size())
                     steps=teacher_pipeline.scheduler.timesteps
                     print(steps)
                     for teacher_t in steps:
                         with accelerator.accumulate(student_pipeline.unet):
                             latent_model_input = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
+                            print("latent_model_input size",latent_model_input.size())
                             noise_pred = teacher_pipeline.unet(
                                 latent_model_input,
                                 teacher_t,
@@ -334,24 +336,26 @@ def main(args):
                                 cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
                                 added_cond_kwargs=added_cond_kwargs,
                                 return_dict=False,
-                            )[0]        
+                            )[0]
+                            print("noise pred size", noise_pred.size())    
                             if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                                 noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
-                            
+                                print('cfg noise pred size',noise_pred.size())
                             student_noise_pred=student_pipeline.unet(
                                     start_latents,
                                     torch.tensor(1000),
                                     encoder_hidden_states=prompt_embeds,
                                     timestep_cond=None,
-                                    cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
+                                    cross_attention_kwargs=student_pipeline.cross_attention_kwargs,
                                     added_cond_kwargs=added_cond_kwargs,
                                     return_dict=False,
                             )[0]
+                            print("student_noise_pred size",student_noise_pred.size())
                             if args.do_classifier_free_guidance:
                                 student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                                 student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
-
+                                print('student_noise_pred cfg ', student_noise_pred.size())
                             loss=F.mse_loss(noise_pred,student_noise_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(loss.detach().cpu().numpy()/effective_batch_size)
@@ -360,6 +364,7 @@ def main(args):
                             optimizer.zero_grad()
 
                             latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
+                            print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
                     
             
