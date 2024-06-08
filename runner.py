@@ -201,15 +201,16 @@ def main(args):
                                 prompt_embeds = torch.cat([negative, positive])
                             else:
                                 prompt_embeds=positive
-                            for student_i in range(len(student_pipeline.scheduler.timesteps)):
+                            steps=[torch.tensor(1000)]+student_pipeline.scheduler.timesteps
+                            for student_i in range(len(steps)):
                                 with accelerator.accumulate(student_pipeline.unet):
                                     #print("prompt embeds size",prompt_embeds.size())
 
                                     start_latents=teacher_latents_plus.clone()
 
-                                    student_t=student_pipeline.scheduler.timesteps[student_i]
+                                    student_t=steps[student_i]
                                     teacher_i=(2*student_i)-1
-                                    teacher_t=teacher_pipeline.scheduler.timesteps[teacher_i]
+                                    teacher_t=student_t.clone() #teacher_pipeline.scheduler.timesteps[teacher_i]
             
                                     student_latents=reverse_step(args,student_t,student_pipeline,start_latents,prompt_embeds, added_cond_kwargs)
                                     
@@ -268,7 +269,87 @@ def main(args):
             image_pipeline=teacher_pipeline
             noise_pipeline=clone_pipeline(image_pipeline)
         elif args.method_name==TRACT:
-            pass
+            student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+            teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
+            student_pipeline.scheduler.set_timesteps(args.final_num_inference_steps)
+            trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
+            #print(trainable_parameters)
+            optimizer = torch.optim.AdamW(
+                trainable_parameters,
+                lr=args.lr,
+                betas=(0.9, 0.999),
+                weight_decay=0.01,
+                eps=0.00000001)
+            for e in range(args.epochs):
+                start=time.time()
+                epoch_loss=0.0
+                for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                    #with accelerator.accumulate(student_pipeline.unet):
+                    avg_loss=0.0
+                    #TODO prepare and clone latents
+                    start_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
+                        args.batch_size,
+                        num_channels_latents,
+                        args.size,
+                        args.size,
+                        positive.dtype,
+                        accelerator.device,
+                        generator)
+                    #teacher_latents=student_latents.clone()
+                    #teacher_latents_plus=student_latents.clone()
+                    positive=positive.to(accelerator.device)
+                    #print("latennts size",student_latents.size())
+                    
+                    if args.do_classifier_free_guidance:
+                        negative=negative.to(accelerator.device)
+                        prompt_embeds = torch.cat([negative, positive])
+                    else:
+                        prompt_embeds=positive
+
+                    student_noise_pred=student_pipeline.unet(
+                            latent_model_input,
+                            torch.tensor(1000),
+                            encoder_hidden_states=prompt_embeds,
+                            timestep_cond=None,
+                            cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
+                            added_cond_kwargs=added_cond_kwargs,
+                            return_dict=False,
+                    )[0]
+                    if args.do_classifier_free_guidance:
+                        noise_pred_uncond, noise_pred_text = student_noise_pred.chunk(2)
+                        student_noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    latents=start_latents.clone()
+                    steps=[torch.tensor(1000)]+teacher_pipeline.scheduler.timesteps
+                    for teacher_t in steps:
+                        with accelerator.accumulate(student_pipeline.unet):
+                            latent_model_input = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
+                            latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
+                            noise_pred = teacher_pipeline.unet(
+                                latent_model_input,
+                                teacher_t,
+                                encoder_hidden_states=prompt_embeds,
+                                timestep_cond=None,
+                                cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
+                                added_cond_kwargs=added_cond_kwargs,
+                                return_dict=False,
+                            )[0]
+                            if args.do_classifier_free_guidance:
+                                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                                noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                            
+                            loss=F.mse_loss(noise_pred,student_noise_pred)
+                            avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                            print(avg_loss)
+                            accelerator.backward(loss,retain_graph=True)
+                            optimizer.step()
+                            optimizer.zero_grad()
+
+                            latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
+                print("epoch avg loss", avg_loss)
+                    
+            
+
+
 
 if __name__=='__main__':
     print_details()
