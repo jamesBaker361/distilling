@@ -1,6 +1,7 @@
 import torch
 from diffusers import StableDiffusionPipeline,DDIMScheduler
 from PIL import Image
+from adapter_helpers import better_load_ip_adapter
 
 
 def reverse_step(args,t:int,pipeline:StableDiffusionPipeline,
@@ -28,8 +29,14 @@ def reverse_step(args,t:int,pipeline:StableDiffusionPipeline,
 
 def clone_pipeline(args:dict,teacher_pipeline:StableDiffusionPipeline,image:Image)->StableDiffusionPipeline:
     student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
-    student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-    student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+    if args.use_ip_adapter:
+        student_pipeline=better_load_ip_adapter(
+            student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
+        )
+        #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
+        student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+    else:
+        student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
     student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
     student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
 
