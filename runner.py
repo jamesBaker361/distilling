@@ -45,6 +45,7 @@ parser.add_argument("--guidance_scale",type=float,default=7.5)
 parser.add_argument("--shuffle",action="store_true")
 parser.add_argument("--pretrain_noise_pipeline",action="store_true")
 parser.add_argument("--use_ip_adapter",action="store_true")
+parser.add_argument("--max_grad_norm",type=float,default=1.0)
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -225,6 +226,8 @@ def main(args):
                                     avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                                     print(loss.detach().cpu().numpy()/effective_batch_size)
                                     accelerator.backward(loss,retain_graph=True)
+                                    if accelerator.sync_gradients:
+                                        accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
                                     optimizer.step()
                                     optimizer.zero_grad()
                                     #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
@@ -296,10 +299,12 @@ def main(args):
                         positive.dtype,
                         accelerator.device,
                         generator)
+                    start_latents = torch.cat([start_latents] * 2) if args.do_classifier_free_guidance else start_latents
+                    #latent_model_input = pipeline.scheduler.scale_model_input(latent_model_input, t)
                     #teacher_latents=student_latents.clone()
                     #teacher_latents_plus=student_latents.clone()
                     positive=positive.to(accelerator.device)
-                    print("latennts size",student_latents.size())
+                    print("latennts size",start_latents.size())
                     
                     if args.do_classifier_free_guidance:
                         negative=negative.to(accelerator.device)
@@ -307,6 +312,7 @@ def main(args):
                     else:
                         prompt_embeds=positive
                     print("prompt_embeds size",prompt_embeds.size())
+                    
                     student_noise_pred=student_pipeline.unet(
                             start_latents,
                             torch.tensor(1000),
@@ -360,6 +366,8 @@ def main(args):
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(loss.detach().cpu().numpy()/effective_batch_size)
                             accelerator.backward(loss,retain_graph=True)
+                            if accelerator.sync_gradients:
+                                accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
                             optimizer.step()
                             optimizer.zero_grad()
 
