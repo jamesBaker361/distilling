@@ -339,7 +339,7 @@ def main(args):
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                                 noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
                             
-                            loss=F.mse_loss(noise_pred,student_noise_pred)
+                            loss=F.mse_loss(noise_pred,student_noise_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(avg_loss)
                             accelerator.backward(loss,retain_graph=True)
