@@ -334,11 +334,24 @@ def main(args):
                                 cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
                                 added_cond_kwargs=added_cond_kwargs,
                                 return_dict=False,
-                            )[0]
+                            )[0]        
                             if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                                 noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
                             
+                            student_noise_pred=student_pipeline.unet(
+                                    start_latents,
+                                    torch.tensor(1000),
+                                    encoder_hidden_states=prompt_embeds,
+                                    timestep_cond=None,
+                                    cross_attention_kwargs=teacher_pipeline.cross_attention_kwargs,
+                                    added_cond_kwargs=added_cond_kwargs,
+                                    return_dict=False,
+                            )[0]
+                            if args.do_classifier_free_guidance:
+                                student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
+                                student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
+
                             loss=F.mse_loss(noise_pred,student_noise_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(loss.detach().cpu().numpy()/effective_batch_size)
