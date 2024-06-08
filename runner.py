@@ -299,7 +299,7 @@ def main(args):
                     #teacher_latents=student_latents.clone()
                     #teacher_latents_plus=student_latents.clone()
                     positive=positive.to(accelerator.device)
-                    #print("latennts size",student_latents.size())
+                    print("latennts size",student_latents.size())
                     
                     if args.do_classifier_free_guidance:
                         negative=negative.to(accelerator.device)
