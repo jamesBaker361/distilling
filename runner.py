@@ -11,6 +11,8 @@ import torch.nn.functional as F
 import time
 from adapter_helpers import better_load_ip_adapter
 from datetime import datetime
+import os
+import wandb
 
 # getting the current date and time
 current_datetime = datetime.now()
@@ -46,6 +48,7 @@ parser.add_argument("--shuffle",action="store_true")
 parser.add_argument("--pretrain_noise_pipeline",action="store_true")
 parser.add_argument("--use_ip_adapter",action="store_true")
 parser.add_argument("--max_grad_norm",type=float,default=1.0)
+parser.add_argument("--image_dir",type=str,default="/scratch/jlb638/distillation")
 #TODO set sampler as arg
 #TODO noise prediction vs x prediction
 #TODO SNR coefficien
@@ -380,7 +383,32 @@ def main(args):
                             latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
-                    
+                inference_step_list=[inference_steps for inference_steps in range(args.final_num_inference_steps)]
+                save_dir=os.path.join(args.image_dir, "validation",f"epoch_{e}")
+                os.makedirs(save_dir, exist_ok=True)
+                for inference_steps in inference_step_list:
+                    #validation images
+                    kwargs={
+                        "prompt":subject,
+                        "guidance_scale":1.0,
+                        "num_inference_steps":inference_steps
+                    }
+                    if args.do_classifier_free_guidance:
+                        kwargs["guidance_scale"]=args.guidance_scale
+                        kwargs["negative_prompt"]=negative_prompt
+                    if args.use_ip_adapter:
+                        kwargs["ip_adapter_image"]=image
+                    validation_image=student_pipeline(**kwargs).images[0]
+                    save_path=os.path.join(save_dir,f"_{inference_steps}.png")
+                    validation_image.save(save_path)
+                    try:
+                        accelerator.log({
+                            f"{e}/{inference_steps}":wandb.Image(save_path)
+                        })
+                    except:
+                        accelerator.log({
+                            f"{e}/{inference_steps}":validation_image
+                        })
             
 
 
