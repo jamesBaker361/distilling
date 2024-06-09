@@ -245,9 +245,35 @@ def main(args):
                     })
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
+                    #validation images
+                    save_dir=os.path.join(args.image_dir, "validation",f"steps_{inference_steps}")
+                    os.makedirs(save_dir, exist_ok=True)
+                    #validation images
+                    kwargs={
+                        "prompt":subject,
+                        "guidance_scale":1.0,
+                        "num_inference_steps":inference_steps
+                    }
+                    if args.do_classifier_free_guidance:
+                        kwargs["guidance_scale"]=args.guidance_scale
+                        kwargs["negative_prompt"]=negative_prompt
+                    if args.use_ip_adapter:
+                        kwargs["ip_adapter_image"]=image
+                    validation_image=student_pipeline(**kwargs).images[0]
+                    save_path=os.path.join(save_dir,f"_{e}.png")
+                    validation_image.save(save_path)
+                    try:
+                        accelerator.log({
+                            f"{inference_steps}/{e}":wandb.Image(save_path)
+                        })
+                    except:
+                        accelerator.log({
+                            f"{inference_steps}/{e}":validation_image
+                        })
                     #check if epoch loss<convergence
                     if epoch_loss/(len(positive_prompt_list_batched))<args.convergence_threshold:
                         break
+
                 student_steps=student_steps//2
                 accelerator.free_memory()
                 torch.cuda.empty_cache()
