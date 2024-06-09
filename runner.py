@@ -228,8 +228,8 @@ def main(args):
                                     #compute loss
                                     
                                     loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
-                                    avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                                    print(loss.detach().cpu().numpy()/effective_batch_size)
+                                    avg_loss+=loss.detach().cpu().numpy()/args.batch_size
+                                    print(loss.detach().cpu().numpy()/args.batch_size)
                                     accelerator.backward(loss,retain_graph=True)
                                     if accelerator.sync_gradients:
                                         accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
