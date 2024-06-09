@@ -154,6 +154,7 @@ def main(args):
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+                print("student pipleine loaded")
                 if args.use_ip_adapter:
                     student_pipeline=better_load_ip_adapter(
                         student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
@@ -167,7 +168,7 @@ def main(args):
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
                 student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
-
+                print("student pipeline all ready")
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
                 optimizer = torch.optim.AdamW(
@@ -180,6 +181,7 @@ def main(args):
                 for e in range(args.epochs):
                     start=time.time()
                     epoch_loss=0.0
+                    print("begin epoch ",e)
                     if args.prediction_method==REVERSE:
                         for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
                             #with accelerator.accumulate(student_pipeline.unet):
@@ -330,8 +332,11 @@ def main(args):
                     steps=teacher_pipeline.scheduler.timesteps
                     print(steps)
                     for teacher_t in steps:
+                        print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
+                            print("inital latents size 337",latents.size())
                             latent_model_input = latents
+                            print("inital latents size 339",latents.size())
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
                             print("latent_model_input size",latent_model_input.size())
                             noise_pred = teacher_pipeline.unet(
