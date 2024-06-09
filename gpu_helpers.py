@@ -1,7 +1,16 @@
 import os
 import torch
+from datetime import datetime
 
 def print_details():
+    # Get the current date and time
+    now = datetime.now()
+
+    # Format the date and time
+    formatted_now = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Print the formatted date and time
+    print("Current date and time:", formatted_now)
     for slurm_var in ["SLURMD_NODENAME","SBATCH_CLUSTERS", 
                       "SBATCH_PARTITION","SLURM_JOB_PARTITION",
                       "SLURM_NODEID","SLURM_MEM_PER_GPU",
