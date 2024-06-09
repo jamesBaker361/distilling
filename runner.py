@@ -383,6 +383,8 @@ def main(args):
                             latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
+                end=time.time()
+                print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
                 inference_step_list=[inference_steps for inference_steps in range(args.final_num_inference_steps)]
                 save_dir=os.path.join(args.image_dir, "validation",f"epoch_{e}")
                 os.makedirs(save_dir, exist_ok=True)
