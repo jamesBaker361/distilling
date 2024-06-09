@@ -246,7 +246,7 @@ def main(args):
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
                     #check if epoch loss<convergence
-                    if epoch_loss/(e+1)<args.convergence_threshold:
+                    if epoch_loss/(len(positive_prompt_list_batched))<args.convergence_threshold:
                         break
                 student_steps=student_steps//2
                 accelerator.free_memory()
