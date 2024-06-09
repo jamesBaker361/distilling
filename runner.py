@@ -331,7 +331,7 @@ def main(args):
                     print(steps)
                     for teacher_t in steps:
                         with accelerator.accumulate(student_pipeline.unet):
-                            latent_model_input = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
+                            latent_model_input = latents
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
                             print("latent_model_input size",latent_model_input.size())
                             noise_pred = teacher_pipeline.unet(
@@ -372,6 +372,7 @@ def main(args):
                             optimizer.zero_grad()
 
                             latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
+                            latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
                     
