@@ -440,6 +440,8 @@ def main(args):
                         accelerator.log({
                             f"{e}/{inference_steps}":validation_image
                         })
+                accelerator.free_memory()
+                torch.cuda.empty_cache()
         #TODO add metrics                
             
 
