@@ -17,7 +17,7 @@ import wandb
 # getting the current date and time
 current_datetime = datetime.now()
 
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 
 parser=argparse.ArgumentParser()
 
@@ -150,7 +150,8 @@ def main(args):
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             
             student_steps=args.initial_num_inference_steps//2
-            
+            accelerator.free_memory()
+            torch.cuda.empty_cache()
             while student_steps>=args.final_num_inference_steps:
                 accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
                 print("effective batch size ",accelerator.gradient_accumulation_steps * args.batch_size)
