@@ -378,10 +378,10 @@ def main(args):
                                 return_dict=False,
                             )[0]
                             print("noise pred size", noise_pred.size())    
-                            if args.do_classifier_free_guidance:
+                            '''if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                                 noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
-                                print('cfg noise pred size',noise_pred.size())
+                                print('cfg noise pred size',noise_pred.size())'''
                             student_noise_pred=student_pipeline.unet(
                                     start_latents,
                                     torch.tensor(1000),
@@ -392,10 +392,11 @@ def main(args):
                                     return_dict=False,
                             )[0]
                             print("student_noise_pred size",student_noise_pred.size())
-                            if args.do_classifier_free_guidance:
+                            '''if args.do_classifier_free_guidance:
                                 student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                                 student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
-                                print('student_noise_pred cfg ', student_noise_pred.size())
+                                print('student_noise_pred cfg ', student_noise_pred.size())'''
+                            
                             loss=F.mse_loss(noise_pred,student_noise_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(loss.detach().cpu().numpy()/effective_batch_size)
