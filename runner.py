@@ -159,9 +159,7 @@ def main(args):
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
                 print("student pipleine loaded")
                 if args.use_ip_adapter:
-                    student_pipeline=better_load_ip_adapter(
-                        student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
-                    )
+                    student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
                     #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
                     student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
                 else:
