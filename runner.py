@@ -166,7 +166,9 @@ def main(args):
                     student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
                 else:
                     student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
+                print("initalized")
                 student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
+                print("loaded state dict")
                 student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
@@ -406,7 +408,7 @@ def main(args):
                             optimizer.zero_grad()
 
                             latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
-                            latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
+                            #latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
                 end=time.time()
@@ -437,6 +439,7 @@ def main(args):
                         accelerator.log({
                             f"{e}/{inference_steps}":validation_image
                         })
+        #TODO add metrics                
             
 
 
