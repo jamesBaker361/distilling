@@ -161,6 +161,7 @@ def main(args):
                 print("student pipleine loaded")
                 if args.use_ip_adapter:
                     student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True)
+                    print("adapter loaded")
                     #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
                     student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
                 else:
