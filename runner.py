@@ -383,6 +383,7 @@ def main(args):
                                 added_cond_kwargs=added_cond_kwargs,
                                 return_dict=False,
                             )[0]
+                            latents_pred=latent_model_input-noise_pred
                             print("noise pred size", noise_pred.size())    
                             '''if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -398,12 +399,13 @@ def main(args):
                                     return_dict=False,
                             )[0]
                             print("student_noise_pred size",student_noise_pred.size())
+                            student_latents_pred=start_latents-student_noise_pred
                             '''if args.do_classifier_free_guidance:
                                 student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                                 student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
                                 print('student_noise_pred cfg ', student_noise_pred.size())'''
                             
-                            loss=F.mse_loss(noise_pred,student_noise_pred,reduction="mean")
+                            loss=F.mse_loss(latents_pred,student_latents_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             print(loss.detach().cpu().numpy()/effective_batch_size)
                             accelerator.backward(loss,retain_graph=True)
