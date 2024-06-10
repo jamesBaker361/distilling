@@ -91,6 +91,7 @@ def main(args):
         print("effective batch size = ",effective_batch_size)
 
         teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+        teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
         if args.use_ip_adapter:
             teacher_pipeline=better_load_ip_adapter(
                 teacher_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True
@@ -138,6 +139,7 @@ def main(args):
         num_channels_latents = teacher_pipeline.unet.config.in_channels
         if args.method_name==PROGRESSIVE:
             student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+            student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
             if args.use_ip_adapter:
                 student_pipeline=better_load_ip_adapter(
                     student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True
@@ -159,6 +161,7 @@ def main(args):
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
                 student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+                student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
                 print("student pipleine loaded")
                 if args.use_ip_adapter:
                     student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True)
