@@ -34,9 +34,9 @@ def clone_pipeline(args:dict,teacher_pipeline:StableDiffusionPipeline,image:Imag
             student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
         )
         #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-        student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
-    else:
-        student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
+        #student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+    '''else:
+        student_pipeline("do this to help instantiate proerties",num_inference_steps=1)'''
     student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
     student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
 
