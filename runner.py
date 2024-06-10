@@ -96,7 +96,7 @@ def main(args):
             teacher_pipeline=better_load_ip_adapter(
                 teacher_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True
             )
-
+            print("teacher pipeline loaded line 99")
             #teacher_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
             teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
         else:
@@ -145,7 +145,7 @@ def main(args):
                     student_pipeline,"h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True
                 )
                 #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-                student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image_embeds=ip_adapter_image_embeds)
+                student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image_embeds=[ip_adapter_image_embeds])
             else:
                 student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
             student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
@@ -167,7 +167,7 @@ def main(args):
                     student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True)
                     print("adapter loaded")
                     #student_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-                    student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image_embeds=ip_adapter_image_embeds)
+                    student_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image_embeds=[ip_adapter_image_embeds])
                 else:
                     student_pipeline("do this to help instantiate proerties",num_inference_steps=1)
                 print("initalized")
