@@ -15,7 +15,7 @@ def reverse_step(args,t:int,pipeline:StableDiffusionPipeline,
         t,
         encoder_hidden_states=prompt_embeds,
         timestep_cond=None,
-        cross_attention_kwargs=pipeline.cross_attention_kwargs,
+        cross_attention_kwargs=None,
         added_cond_kwargs=added_cond_kwargs,
         return_dict=False,
     )[0]
