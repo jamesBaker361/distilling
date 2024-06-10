@@ -98,9 +98,9 @@ def main(args):
             )
             print("teacher pipeline loaded line 99")
             #teacher_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name)
-            teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
-        else:
-            teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
+            #teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
+        '''else:
+            teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)'''
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
 
