@@ -13,6 +13,8 @@ from adapter_helpers import better_load_ip_adapter
 from datetime import datetime
 import os
 import wandb
+from memory_profiler import profile
+import psutil
 
 # getting the current date and time
 current_datetime = datetime.now()
@@ -62,6 +64,7 @@ smoothly interpolating between predicting x directly and predicting via epsilon.
 
 '''
 
+@profile
 def main(args):
     current_date_time = current_datetime.strftime("%m/%d/%Y, %H:%M:%S")
     print("current date and time = ",current_date_time)
@@ -89,8 +92,9 @@ def main(args):
 
         effective_batch_size=args.batch_size* args.gradient_accumulation_steps
         print("effective batch size = ",effective_batch_size)
-
+        print("line 95 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+        print("line 97 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
         if args.use_ip_adapter:
             teacher_pipeline=better_load_ip_adapter(
@@ -123,6 +127,8 @@ def main(args):
         else:
             negative_prompt_list_batched=[negative_prompt_list[i:i+args.batch_size] for i in range(0,len(negative_prompt_list),args.batch_size)]
         positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
+        print("line 130 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
+        
         if args.use_ip_adapter:
             ip_adapter_image_embeds = teacher_pipeline.prepare_ip_adapter_image_embeds(
                     image,
@@ -134,22 +140,30 @@ def main(args):
             added_cond_kwargs ={"image_embeds":[ip_adapter_image_embeds.to(accelerator.device)]}
         else:
             added_cond_kwargs ={}
+        print("line 143 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
+        
         print("len prompt list",len(positive_prompt_list))
         print("len batched ",len(positive_prompt_list_batched))
         num_channels_latents = teacher_pipeline.unet.config.in_channels
         if args.method_name==PROGRESSIVE:
+            print("line 149 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
+        
             student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+            print("line 152 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
+        
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
-            
+            print("line 156 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             student_steps=args.initial_num_inference_steps//2
             accelerator.free_memory()
             torch.cuda.empty_cache()
             while student_steps>=args.final_num_inference_steps:
                 accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
                 print("effective batch size ",accelerator.gradient_accumulation_steps * args.batch_size)
+                print("line 163 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                 teacher_pipeline=student_pipeline
                 teacher_pipeline.unet.requires_grad_(False)
+                print("line 166 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                 student_pipeline=clone_pipeline(args,teacher_pipeline,image)
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
