@@ -302,6 +302,7 @@ def main(args):
             noise_pipeline=clone_pipeline(image_pipeline)
         elif args.method_name==TRACT:
             student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+            print("line 305 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             student_pipeline.scheduler.set_timesteps(args.final_num_inference_steps)
             trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
@@ -312,6 +313,7 @@ def main(args):
                 betas=(0.9, 0.999),
                 weight_decay=0.01,
                 eps=0.00000001)
+            print("line 316 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             for e in range(args.epochs):
                 start=time.time()
                 epoch_loss=0.0
@@ -343,7 +345,7 @@ def main(args):
                     
                     student_noise_pred=student_pipeline.unet(
                             start_latents,
-                            torch.tensor(1000),
+                            torch.tensor(1000,device=accelerator.device),
                             encoder_hidden_states=prompt_embeds,
                             timestep_cond=None,
                             cross_attention_kwargs=None,
@@ -382,7 +384,7 @@ def main(args):
                                 print('cfg noise pred size',noise_pred.size())'''
                             student_noise_pred=student_pipeline.unet(
                                     start_latents,
-                                    torch.tensor(1000),
+                                    torch.tensor(1000,device=accelerator.device),
                                     encoder_hidden_states=prompt_embeds,
                                     timestep_cond=None,
                                     cross_attention_kwargs=None,
