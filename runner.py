@@ -302,6 +302,7 @@ def main(args):
             noise_pipeline=clone_pipeline(image_pipeline)
         elif args.method_name==TRACT:
             student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+            student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             print("line 305 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             student_pipeline.scheduler.set_timesteps(args.final_num_inference_steps)
@@ -342,7 +343,10 @@ def main(args):
                     else:
                         prompt_embeds=positive
                     print("prompt_embeds size",prompt_embeds.size())
-                    
+                    print('start_latents device', start_latents.device)
+                    print('time device ',torch.tensor(1000,device=accelerator.device))
+                    print('student_pipeline.unet',student_pipeline.unet.device)
+                    print('prompt_embeds device',prompt_embeds.device)
                     student_noise_pred=student_pipeline.unet(
                             start_latents,
                             torch.tensor(1000,device=accelerator.device),
