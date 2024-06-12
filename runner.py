@@ -356,17 +356,17 @@ def main(args):
                         student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                         student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
                     latents=start_latents.clone()
-                    print("inital latents size",latents.size())
+                    #print("inital latents size",latents.size())
                     steps=teacher_pipeline.scheduler.timesteps
                     print(steps)
                     for teacher_t in steps:
-                        print("inital latents size 335",latents.size())
+                        #print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
-                            print("inital latents size 337",latents.size())
+                            #print("inital latents size 337",latents.size())
                             latent_model_input = latents
-                            print("inital latents size 339",latents.size())
+                            #print("inital latents size 339",latents.size())
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
-                            print("latent_model_input size",latent_model_input.size())
+                            #print("latent_model_input size",latent_model_input.size())
                             noise_pred = teacher_pipeline.unet(
                                 latent_model_input,
                                 teacher_t,
@@ -400,7 +400,8 @@ def main(args):
                             
                             loss=F.mse_loss(latents_pred,student_latents_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                            print(loss.detach().cpu().numpy()/effective_batch_size)
+                            print('avg_loss',loss.detach().cpu().numpy()/effective_batch_size)
+                            print("line 404 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                             accelerator.backward(loss,retain_graph=True)
                             if accelerator.sync_gradients:
                                 accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
