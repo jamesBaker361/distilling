@@ -305,6 +305,7 @@ def main(args):
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             print("line 305 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
+            teacher_pipeline.unet=teacher_pipeline.unet.to(accelerator.device)
             student_pipeline.scheduler.set_timesteps(args.final_num_inference_steps)
             trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
             #print(trainable_parameters)
@@ -377,7 +378,7 @@ def main(args):
                             print("prompt_embeds",prompt_embeds.device)
                             noise_pred = teacher_pipeline.unet(
                                 latent_model_input,
-                                teacher_t,
+                                teacher_t.to(accelerator.device),
                                 encoder_hidden_states=prompt_embeds,
                                 timestep_cond=None,
                                 cross_attention_kwargs=None,
