@@ -344,7 +344,7 @@ def main(args):
                         prompt_embeds=positive
                     print("prompt_embeds size",prompt_embeds.size())
                     print('start_latents device', start_latents.device)
-                    print('time device ',torch.tensor(1000,device=accelerator.device))
+                    print('time device ',torch.tensor(1000,device=accelerator.device).device)
                     print('student_pipeline.unet',student_pipeline.unet.device)
                     print('prompt_embeds device',prompt_embeds.device)
                     student_noise_pred=student_pipeline.unet(
@@ -371,6 +371,10 @@ def main(args):
                             #print("inital latents size 339",latents.size())
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
                             #print("latent_model_input size",latent_model_input.size())
+                            print('teacher_pipeline.unet',teacher_pipeline.unet.device)
+                            print("atent_model_input",latent_model_input.device)
+                            print("teacher_t",teacher_t.device)
+                            print("prompt_embeds",prompt_embeds.device)
                             noise_pred = teacher_pipeline.unet(
                                 latent_model_input,
                                 teacher_t,
