@@ -187,7 +187,7 @@ def main(args):
                             #with accelerator.accumulate(student_pipeline.unet):
                             avg_loss=0.0
                             #TODO prepare and clone latents
-                            student_latents =  student_pipeline.prepare_latents(
+                            student_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
                                 args.batch_size,
                                 num_channels_latents,
                                 args.size,
