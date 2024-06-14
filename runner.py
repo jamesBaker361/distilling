@@ -248,13 +248,13 @@ def main(args):
                     end=time.time()
                     print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
                     #validation images
-                    save_dir=os.path.join(args.image_dir, "validation",f"steps_{inference_steps}")
+                    save_dir=os.path.join(args.image_dir, "validation",f"steps_{student_steps}")
                     os.makedirs(save_dir, exist_ok=True)
                     #validation images
                     kwargs={
                         "prompt":subject,
                         "guidance_scale":1.0,
-                        "num_inference_steps":inference_steps
+                        "num_inference_steps":student_steps
                     }
                     if args.do_classifier_free_guidance:
                         kwargs["guidance_scale"]=args.guidance_scale
@@ -266,11 +266,11 @@ def main(args):
                     validation_image.save(save_path)
                     try:
                         accelerator.log({
-                            f"{inference_steps}/{e}":wandb.Image(save_path)
+                            f"{student_steps}/{e}":wandb.Image(save_path)
                         })
                     except:
                         accelerator.log({
-                            f"{inference_steps}/{e}":validation_image
+                            f"{student_steps}/{e}":validation_image
                         })
                     #check if epoch loss<convergence
                     if epoch_loss/(len(positive_prompt_list_batched))<args.convergence_threshold:
