@@ -524,5 +524,10 @@ if __name__=='__main__':
     print_details()
     args=parser.parse_args()
     print(args)
+    start=time.time()
     main(args)
+    end=time.time()
+    seconds=end-start
+    hours=seconds/(60*60)
+    print(f"successful training :) time elapsed: {seconds} seconds = {hours} hours")
     print("all done!!!")
