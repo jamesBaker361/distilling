@@ -458,8 +458,22 @@ def main(args):
         accelerator.free_memory()
         torch.cuda.empty_cache()
         eval_prompt_list=[
-
-        ]
+        "a photo of  {} at the beach",
+        "a photo of  {} in the jungle",
+        "a photo of  {} in the snow",
+        "a photo of  {} in the street",
+        "a photo of  {} with a city in the background",
+        "a photo of  {} with a mountain in the background",
+        "a photo of  {} with the Eiffel Tower in the background",
+        "a photo of  {} near the Statue of Liberty",
+        "a photo of  {} near the Sydney Opera House",
+        "a photo of  {} floating on top of water",
+        "a photo of  {} eating a burger",
+        "a photo of  {} drinking a beer",
+        "a photo of  {} wearing a blue hat",
+        "a photo of  {} wearing sunglasses",
+        "a photo of  {} playing with a ball",
+        "a photo of  {} as a police officer"]
         baseline_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
         baseline_pipeline()
         if args.use_ip_adapter:
