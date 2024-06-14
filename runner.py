@@ -496,6 +496,7 @@ def main(args):
 
         for model in [baseline_pipeline.unet, baseline_pipeline.text_encoder,baseline_pipeline.vae,student_pipeline.text_encoder,student_pipeline.unet ,student_pipeline.vae]:
             model.eval()
+            print(model.device)
         student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu) for prompt in eval_prompt_list]
         baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device) for prompt in eval_prompt_list]
         fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device) for prompt in eval_prompt_list]
