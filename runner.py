@@ -349,11 +349,11 @@ def main(args):
                         prompt_embeds = torch.cat([negative, positive])
                     else:
                         prompt_embeds=positive
-                    print("prompt_embeds size",prompt_embeds.size())
-                    print('start_latents device', start_latents.device)
-                    print('time device ',torch.tensor(1000,device=accelerator.device).device)
-                    print('student_pipeline.unet',student_pipeline.unet.device)
-                    print('prompt_embeds device',prompt_embeds.device)
+                    #print("prompt_embeds size",prompt_embeds.size())
+                    #print('start_latents device', start_latents.device)
+                    #print('time device ',torch.tensor(1000,device=accelerator.device).device)
+                    #print('student_pipeline.unet',student_pipeline.unet.device)
+                    #print('prompt_embeds device',prompt_embeds.device)
                     student_noise_pred=student_pipeline.unet(
                             start_latents,
                             torch.tensor(1000,device=accelerator.device),
