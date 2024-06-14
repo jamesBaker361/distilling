@@ -4,6 +4,7 @@ from static_globals import *
 from datasets import load_dataset
 from accelerate import Accelerator
 from diffusers import StableDiffusionPipeline, DDIMScheduler
+from better_pipeline import BetterPipeline
 import torch
 import random
 from distillation_helpers import reverse_step, clone_pipeline
@@ -95,7 +96,7 @@ def main(args):
         effective_batch_size=args.batch_size* args.gradient_accumulation_steps
         print("effective batch size = ",effective_batch_size)
         print("line 95 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
-        teacher_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+        teacher_pipeline=BetterPipeline.from_pretrained(args.pretrained_path)
         print("line 97 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
         if args.use_ip_adapter:
@@ -474,7 +475,7 @@ def main(args):
         "a photo of  {} wearing sunglasses",
         "a photo of  {} playing with a ball",
         "a photo of  {} as a police officer"]
-        baseline_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+        baseline_pipeline=BetterPipeline.from_pretrained(args.pretrained_path)
         baseline_pipeline()
         ip_adapter_image_embeds_cpu=None
         ip_adapter_image_embeds_device=None
