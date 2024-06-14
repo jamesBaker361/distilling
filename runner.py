@@ -476,7 +476,6 @@ def main(args):
         "a photo of  {} playing with a ball",
         "a photo of  {} as a police officer"]
         baseline_pipeline=BetterPipeline.from_pretrained(args.pretrained_path)
-        baseline_pipeline()
         ip_adapter_image_embeds_cpu=None
         ip_adapter_image_embeds_device=None
         if args.use_ip_adapter:
