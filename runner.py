@@ -484,8 +484,8 @@ def main(args):
             baseline_pipeline.image_encoder.eval()
             student_pipeline.image_encoder=student_pipeline.image_encoder.to("cpu")
             student_pipeline.image_encoder.eval()
-            ip_adapter_image_embeds_cpu=[ip_adapter_image_embeds.to("cpu")]*2
-            ip_adapter_image_embeds_device=[ip_adapter_image_embeds.to(accelerator.device)]*2
+            ip_adapter_image_embeds_cpu=[ip_adapter_image_embeds.to("cpu") for _ in range(2)]
+            ip_adapter_image_embeds_device=[ip_adapter_image_embeds.to(accelerator.device) for _ in range(2)]
         baseline_pipeline.unet=baseline_pipeline.unet.to(accelerator.device)
         baseline_pipeline.text_encoder=baseline_pipeline.text_encoder.to(accelerator.device)
         baseline_pipeline.vae=baseline_pipeline.vae.to(accelerator.device)
