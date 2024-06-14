@@ -476,12 +476,16 @@ def main(args):
         "a photo of  {} as a police officer"]
         baseline_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
         baseline_pipeline()
+        ip_adapter_image_embeds_cpu=None
+        ip_adapter_image_embeds_device=None
         if args.use_ip_adapter:
             baseline_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True)
             baseline_pipeline.image_encoder=baseline_pipeline.image_encoder.to(accelerator.device)
             baseline_pipeline.image_encoder.eval()
             student_pipeline.image_encoder=student_pipeline.image_encoder.to("cpu")
             student_pipeline.image_encoder.eval()
+            ip_adapter_image_embeds_cpu=ip_adapter_image_embeds.to("cpu")
+            ip_adapter_image_embeds_device=ip_adapter_image_embeds.to(accelerator.device)
         baseline_pipeline.unet=baseline_pipeline.unet.to(accelerator.device)
         baseline_pipeline.text_encoder=baseline_pipeline.text_encoder.to(accelerator.device)
         baseline_pipeline.vae=baseline_pipeline.vae.to(accelerator.device)
@@ -492,9 +496,9 @@ def main(args):
 
         for model in [baseline_pipeline.unet, baseline_pipeline.text_encoder,baseline_pipeline.vae,student_pipeline.text_encoder,student_pipeline.unet ,student_pipeline.vae]:
             model.eval()
-        student_image_list=[student_pipeline(prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
-        baseline_image_list=[baseline_pipeline(prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
-        fast_baseline_list=[baseline_pipeline(prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
+        student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu) for prompt in eval_prompt_list]
+        baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device) for prompt in eval_prompt_list]
+        fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device) for prompt in eval_prompt_list]
         for name,image_list in zip(["student","baseline","baseline_fast"],[student_image_list, baseline_image_list, fast_baseline_list]):
             metric_dict=get_metric_dict([prompt.format(subject) for prompt in eval_prompt_list], image_list, [image])
             for metric,value in metric_dict.items():
