@@ -15,6 +15,8 @@ import os
 import wandb
 from memory_profiler import profile
 import psutil
+from experiment_helpers.measuring import get_metric_dict,METRIC_LIST
+import numpy as np
 
 # getting the current date and time
 current_datetime = datetime.now()
@@ -129,6 +131,7 @@ def main(args):
         positive_prompt_list_batched=[torch.cat(positive_prompt_list[i:i+args.batch_size]) for i in range(0,len(positive_prompt_list), args.batch_size)]
         print("line 130 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
+        ip_adapter_image_embeds=None
         if args.use_ip_adapter:
             ip_adapter_image_embeds = teacher_pipeline.prepare_ip_adapter_image_embeds(
                     image,
@@ -145,6 +148,8 @@ def main(args):
         print("len prompt list",len(positive_prompt_list))
         print("len batched ",len(positive_prompt_list_batched))
         num_channels_latents = teacher_pipeline.unet.config.in_channels
+        
+        aggregate_dict={name: {metric:[] for metric in METRIC_LIST} for name in ["student","baseline","baseline_fast"]}
         if args.method_name==PROGRESSIVE:
             print("line 149 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
@@ -363,7 +368,6 @@ def main(args):
                     latents=start_latents.clone()
                     #print("inital latents size",latents.size())
                     steps=teacher_pipeline.scheduler.timesteps
-                    print(steps)
                     for teacher_t in steps:
                         #print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
@@ -451,8 +455,43 @@ def main(args):
                         })
                 accelerator.free_memory()
                 torch.cuda.empty_cache()
-        #TODO add metrics                
-            
+        accelerator.free_memory()
+        torch.cuda.empty_cache()
+        eval_prompt_list=[
+
+        ]
+        baseline_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+        baseline_pipeline()
+        if args.use_ip_adapter:
+            baseline_pipeline.load_ip_adapter("h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name,low_cpu_mem_usage=True)
+            baseline_pipeline.image_encoder=baseline_pipeline.image_encoder.to(accelerator.device)
+            baseline_pipeline.image_encoder.eval()
+            student_pipeline.image_encoder=student_pipeline.image_encoder.to("cpu")
+            student_pipeline.image_encoder.eval()
+        baseline_pipeline.unet=baseline_pipeline.unet.to(accelerator.device)
+        baseline_pipeline.text_encoder=baseline_pipeline.text_encoder.to(accelerator.device)
+        baseline_pipeline.vae=baseline_pipeline.vae.to(accelerator.device)
+
+        student_pipeline.text_encoder=student_pipeline.text_encoder.to("cpu")
+        student_pipeline.unet=student_pipeline.unet.to("cpu")
+        student_pipeline.vae=student_pipeline.vae.to("cpu")
+
+        for model in [baseline_pipeline.unet, baseline_pipeline.text_encoder,baseline_pipeline.vae,student_pipeline.text_encoder,student_pipeline.unet ,student_pipeline.vae]:
+            model.eval()
+        student_image_list=[student_pipeline(prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
+        baseline_image_list=[baseline_pipeline(prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
+        fast_baseline_list=[baseline_pipeline(prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds) for prompt in eval_prompt_list]
+        for name,image_list in zip(["student","baseline","baseline_fast"],[student_image_list, baseline_image_list, fast_baseline_list]):
+            metric_dict=get_metric_dict([prompt.format(subject) for prompt in eval_prompt_list], image_list, [image])
+            for metric,value in metric_dict.items():
+                aggregate_dict[name][metric].append(value)
+                print(f"\t{metric} {value}")
+    for name,aggregates in aggregate_dict.items():
+        for metric,value_list in aggregates.items():
+            print(f"\t{metric} {np.mean(value_list)}")
+            accelerator.log({
+                f"{name}_"+metric:np.mean(value_list)
+            })
 
 
 
