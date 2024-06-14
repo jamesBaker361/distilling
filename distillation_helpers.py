@@ -28,7 +28,7 @@ def reverse_step(args,t:int,pipeline:StableDiffusionPipeline,
     return latents
 
 def clone_pipeline(args:dict,teacher_pipeline:StableDiffusionPipeline,image:Image)->StableDiffusionPipeline:
-    student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path)
+    student_pipeline=StableDiffusionPipeline.from_pretrained(args.pretrained_path,safety_checker=None)
     if args.use_ip_adapter:
         student_pipeline.load_ip_adapter(
             "h94/IP-Adapter", subfolder="models", weight_name=args.ip_weight_name
