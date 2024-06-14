@@ -503,11 +503,11 @@ def main(args):
         for model in [baseline_pipeline.unet, baseline_pipeline.text_encoder,baseline_pipeline.vae,student_pipeline.text_encoder,student_pipeline.unet ,student_pipeline.vae]:
             model.eval()
             print(model.device)
-        student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu,safety_checker=None) for prompt in eval_prompt_list]
-        baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None) for prompt in eval_prompt_list]
-        fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None) for prompt in eval_prompt_list]
+        student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu,safety_checker=None).images[0] for prompt in eval_prompt_list]
+        baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None).images[0] for prompt in eval_prompt_list]
+        fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None).images[0] for prompt in eval_prompt_list]
         for name,image_list in zip(["student","baseline","baseline_fast"],[student_image_list, baseline_image_list, fast_baseline_list]):
-            metric_dict=get_metric_dict([prompt.format(subject) for prompt in eval_prompt_list], image_list, image)
+            metric_dict=get_metric_dict([prompt.format(subject) for prompt in eval_prompt_list], image_list, [image])
             for metric,value in metric_dict.items():
                 aggregate_dict[name][metric].append(value)
                 print(f"\t{metric} {value}")
