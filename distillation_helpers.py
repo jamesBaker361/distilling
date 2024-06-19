@@ -3,6 +3,16 @@ from diffusers import StableDiffusionPipeline,DDIMScheduler
 from PIL import Image
 from adapter_helpers import better_load_ip_adapter
 
+from peft import LoraConfig, get_peft_model
+
+default_lora_config = LoraConfig(
+    r=8,
+    lora_alpha=16,
+    target_modules=["to_k", "to_q", "to_v","to_out.0"],
+    lora_dropout=0.1,
+    bias="none",
+    modules_to_save=["classifier"],
+)
 
 def reverse_step(args,t:int,pipeline:StableDiffusionPipeline,
                  latents:torch.Tensor,prompt_embeds:torch.Tensor, added_cond_kwargs:dict):
