@@ -47,7 +47,7 @@ parser.add_argument("--convergence_threshold",type=float,default=0.001,help="sto
 parser.add_argument("--do_classifier_free_guidance",action="store_true")
 parser.add_argument("--seed",type=int,default=123)
 parser.add_argument("--prediction_method",type=str,default=REVERSE)
-parser.add_argument("--size",type=int,default=512)
+parser.add_argument("--size",type=int,default=256)
 parser.add_argument("--use_negative_prompt",action="store_true")
 parser.add_argument("--guidance_scale",type=float,default=7.5)
 parser.add_argument("--shuffle",action="store_true")
@@ -440,7 +440,9 @@ def main(args):
                     kwargs={
                         "prompt":subject,
                         "guidance_scale":1.0,
-                        "num_inference_steps":inference_steps
+                        "num_inference_steps":inference_steps,
+                        "height":args.size,
+                        "width":args.size
                     }
                     if args.do_classifier_free_guidance:
                         kwargs["guidance_scale"]=args.guidance_scale
@@ -507,9 +509,9 @@ def main(args):
         for model in [baseline_pipeline.unet, baseline_pipeline.text_encoder,baseline_pipeline.vae,student_pipeline.text_encoder,student_pipeline.unet ,student_pipeline.vae]:
             model.eval()
             print(model.device)
-        student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu,safety_checker=None).images[0] for prompt in eval_prompt_list]
-        baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None).images[0] for prompt in eval_prompt_list]
-        fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None).images[0] for prompt in eval_prompt_list]
+        student_image_list=[student_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_cpu,safety_checker=None,height=args.size,width=args.size).images[0] for prompt in eval_prompt_list]
+        baseline_image_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.initial_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None,height=args.size,width=args.size).images[0] for prompt in eval_prompt_list]
+        fast_baseline_list=[baseline_pipeline(prompt=prompt.format(subject), num_inference_steps=args.final_num_inference_steps, ip_adapter_image_embeds=ip_adapter_image_embeds_device,safety_checker=None,height=args.size,width=args.size).images[0] for prompt in eval_prompt_list]
         for name,image_list in zip(["student","baseline","baseline_fast"],[student_image_list, baseline_image_list, fast_baseline_list]):
             metric_dict=get_metric_dict([prompt.format(subject) for prompt in eval_prompt_list], image_list, [image])
             for metric,value in metric_dict.items():
