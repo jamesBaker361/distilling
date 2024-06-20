@@ -290,7 +290,7 @@ def main(args):
             image_list=[]
 
             for prompt in training_prompt_list:
-                noise_latents=teacher_pipeline.prepare_latents(
+                noise_latents= teacher_pipeline.vae.config.scaling_factor * teacher_pipeline.prepare_latents(
                                     1,
                                     num_channels_latents,
                                     args.size,
