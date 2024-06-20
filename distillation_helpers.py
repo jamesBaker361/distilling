@@ -48,6 +48,8 @@ def clone_pipeline(args:dict,teacher_pipeline:StableDiffusionPipeline,image:Imag
     '''else:
         student_pipeline("do this to help instantiate proerties",num_inference_steps=1)'''
     print("loaded ip adapter")
+    if args.use_lora:
+        student_pipeline.unet=get_peft_model(student_pipeline.unet,default_lora_config)
     student_pipeline.unet.load_state_dict(teacher_pipeline.unet.state_dict())
     student_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
 

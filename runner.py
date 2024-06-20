@@ -7,7 +7,7 @@ from diffusers import StableDiffusionPipeline, DDIMScheduler
 from better_pipeline import BetterPipeline
 import torch
 import random
-from distillation_helpers import reverse_step, clone_pipeline
+from distillation_helpers import reverse_step, clone_pipeline, default_lora_config
 import torch.nn.functional as F
 import time
 from adapter_helpers import better_load_ip_adapter
@@ -18,6 +18,7 @@ from memory_profiler import profile
 import psutil
 from experiment_helpers.measuring import get_metric_dict,METRIC_LIST
 import numpy as np
+from peft import get_peft_model
 
 # getting the current date and time
 current_datetime = datetime.now()
@@ -108,6 +109,9 @@ def main(args):
             #teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1,ip_adapter_image=image)
         '''else:
             teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)'''
+        if args.use_lora:
+            teacher_pipeline.unet=get_peft_model(teacher_pipeline.unet,default_lora_config)
+
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
 
