@@ -432,7 +432,7 @@ def main(args):
                 print("epoch avg loss", avg_loss)
                 end=time.time()
                 print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
-                inference_step_list=[inference_steps for inference_steps in range(args.final_num_inference_steps)]
+                inference_step_list=[inference_steps for inference_steps in range(1,args.final_num_inference_steps)]
                 save_dir=os.path.join(args.image_dir, "validation",f"epoch_{e}")
                 os.makedirs(save_dir, exist_ok=True)
                 for inference_steps in inference_step_list:
