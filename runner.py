@@ -39,7 +39,7 @@ parser.add_argument("--initial_num_inference_steps",type=int,default=32)
 parser.add_argument("--final_num_inference_steps",type=int,default=1)
 parser.add_argument("--pretrained_path",type=str,default="runwayml/stable-diffusion-v1-5")
 parser.add_argument("--ip_weight_name",type=str,default="ip-adapter_sd15.bin")
-parser.add_argument("--batch_size",type=int,default=4)
+parser.add_argument("--batch_size",type=int,default=1)
 parser.add_argument("--use_lora",action="store_true")
 parser.add_argument("--lr",type=float,default=0.01)
 parser.add_argument("--epochs",type=int,default=10)
@@ -381,10 +381,10 @@ def main(args):
                             #print("inital latents size 339",latents.size())
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
                             #print("latent_model_input size",latent_model_input.size())
-                            print('teacher_pipeline.unet',teacher_pipeline.unet.device)
-                            print("atent_model_input",latent_model_input.device)
-                            print("teacher_t",teacher_t.device)
-                            print("prompt_embeds",prompt_embeds.device)
+                            #print('teacher_pipeline.unet',teacher_pipeline.unet.device)
+                            #print("atent_model_input",latent_model_input.device)
+                            #print("teacher_t",teacher_t.device)
+                            #print("prompt_embeds",prompt_embeds.device)
                             noise_pred = teacher_pipeline.unet(
                                 latent_model_input,
                                 teacher_t.to(accelerator.device),
