@@ -192,61 +192,61 @@ def main(args):
                     start=time.time()
                     epoch_loss=0.0
                     print("begin epoch ",e)
-                    if args.prediction_method==REVERSE:
-                        for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                            #with accelerator.accumulate(student_pipeline.unet):
-                            avg_loss=0.0
-                            #TODO prepare and clone latents
-                            student_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
-                                args.batch_size,
-                                num_channels_latents,
-                                args.size,
-                                args.size,
-                                positive.dtype,
-                                accelerator.device,
-                                generator)
-                            teacher_latents=student_latents.clone()
-                            teacher_latents_plus=student_latents.clone()
-                            positive=positive.to(accelerator.device)
-                            #print("latennts size",student_latents.size())
-                            
-                            if args.do_classifier_free_guidance:
-                                negative=negative.to(accelerator.device)
-                                prompt_embeds = torch.cat([negative, positive])
-                            else:
-                                prompt_embeds=positive
-                            steps=student_pipeline.scheduler.timesteps
-                            for student_i in range(len(steps)):
-                                with accelerator.accumulate(student_pipeline.unet):
-                                    #print("prompt embeds size",prompt_embeds.size())
 
-                                    start_latents=teacher_latents_plus.clone()
+                    for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                        #with accelerator.accumulate(student_pipeline.unet):
+                        avg_loss=0.0
+                        #TODO prepare and clone latents
+                        student_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
+                            args.batch_size,
+                            num_channels_latents,
+                            args.size,
+                            args.size,
+                            positive.dtype,
+                            accelerator.device,
+                            generator)
+                        teacher_latents=student_latents.clone()
+                        teacher_latents_plus=student_latents.clone()
+                        positive=positive.to(accelerator.device)
+                        #print("latennts size",student_latents.size())
+                        
+                        if args.do_classifier_free_guidance:
+                            negative=negative.to(accelerator.device)
+                            prompt_embeds = torch.cat([negative, positive])
+                        else:
+                            prompt_embeds=positive
+                        steps=student_pipeline.scheduler.timesteps
+                        for student_i in range(len(steps)):
+                            with accelerator.accumulate(student_pipeline.unet):
+                                #print("prompt embeds size",prompt_embeds.size())
 
-                                    student_t=steps[student_i]
-                                    teacher_i=(2*student_i)-1
-                                    teacher_t=student_t.clone() #teacher_pipeline.scheduler.timesteps[teacher_i]
-            
-                                    student_latents=reverse_step(args,student_t,student_pipeline,start_latents,prompt_embeds, added_cond_kwargs)
-                                    
-                                    teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, start_latents, prompt_embeds, added_cond_kwargs)
-                                    teacher_t_plus=teacher_pipeline.scheduler.timesteps[teacher_i+1]
-                                    teacher_latents_plus=reverse_step(args,teacher_t_plus, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                    print(student_t, teacher_t, teacher_t_plus)
-                                    #compute loss
-                                    
-                                    loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
-                                    avg_loss+=loss.detach().cpu().numpy()/args.batch_size
-                                    #print(loss.detach().cpu().numpy()/args.batch_size)
-                                    accelerator.backward(loss,retain_graph=True)
-                                    if accelerator.sync_gradients:
-                                        accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
-                                    optimizer.step()
-                                    optimizer.zero_grad()
-                                    #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                            accelerator.log({
-                                "avg_loss_per_step_per_sample":avg_loss
-                            })
-                            epoch_loss+=avg_loss
+                                start_latents=teacher_latents_plus.clone()
+
+                                student_t=steps[student_i]
+                                teacher_i=(2*student_i)-1
+                                teacher_t=student_t.clone() #teacher_pipeline.scheduler.timesteps[teacher_i]
+        
+                                student_latents=reverse_step(args,student_t,student_pipeline,start_latents,prompt_embeds, added_cond_kwargs)
+                                
+                                teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, start_latents, prompt_embeds, added_cond_kwargs)
+                                teacher_t_plus=teacher_pipeline.scheduler.timesteps[teacher_i+1]
+                                teacher_latents_plus=reverse_step(args,teacher_t_plus, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
+                                print(student_t, teacher_t, teacher_t_plus)
+                                #compute loss
+                                
+                                loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
+                                avg_loss+=loss.detach().cpu().numpy()/args.batch_size
+                                #print(loss.detach().cpu().numpy()/args.batch_size)
+                                accelerator.backward(loss,retain_graph=True)
+                                if accelerator.sync_gradients:
+                                    accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
+                                optimizer.step()
+                                optimizer.zero_grad()
+                                #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                        accelerator.log({
+                            "avg_loss_per_step_per_sample":avg_loss
+                        })
+                        epoch_loss+=avg_loss
                     accelerator.log({
                         "avg_loss_per_step_per_epoch": epoch_loss/(e+1)
                     })
