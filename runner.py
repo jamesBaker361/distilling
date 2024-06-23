@@ -236,7 +236,7 @@ def main(args):
                                     
                                     loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
                                     avg_loss+=loss.detach().cpu().numpy()/args.batch_size
-                                    print(loss.detach().cpu().numpy()/args.batch_size)
+                                    #print(loss.detach().cpu().numpy()/args.batch_size)
                                     accelerator.backward(loss,retain_graph=True)
                                     if accelerator.sync_gradients:
                                         accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
@@ -346,7 +346,7 @@ def main(args):
                     #teacher_latents=student_latents.clone()
                     #teacher_latents_plus=student_latents.clone()
                     positive=positive.to(accelerator.device)
-                    print("latennts size",start_latents.size())
+                    #print("latennts size",start_latents.size())
                     
                     if args.do_classifier_free_guidance:
                         negative=negative.to(accelerator.device)
@@ -395,7 +395,7 @@ def main(args):
                                 return_dict=False,
                             )[0]
                             latents_pred=latent_model_input-noise_pred
-                            print("noise pred size", noise_pred.size())    
+                            #print("noise pred size", noise_pred.size())    
                             '''if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                                 noise_pred = noise_pred_uncond + args.guidance_scale * (noise_pred_text - noise_pred_uncond)
@@ -409,7 +409,7 @@ def main(args):
                                     added_cond_kwargs=added_cond_kwargs,
                                     return_dict=False,
                             )[0]
-                            print("student_noise_pred size",student_noise_pred.size())
+                            #print("student_noise_pred size",student_noise_pred.size())
                             student_latents_pred=start_latents-student_noise_pred
                             '''if args.do_classifier_free_guidance:
                                 student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
@@ -418,8 +418,8 @@ def main(args):
                             
                             loss=F.mse_loss(latents_pred,student_latents_pred,reduction="mean")
                             avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
-                            print('avg_loss',loss.detach().cpu().numpy()/effective_batch_size)
-                            print("line 404 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
+                            #print('avg_loss',loss.detach().cpu().numpy()/effective_batch_size)
+                            #print("line 404 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                             accelerator.backward(loss,retain_graph=True)
                             if accelerator.sync_gradients:
                                 accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
