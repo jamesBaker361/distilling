@@ -32,6 +32,7 @@ parser.add_argument("--dataset",type=str,default="jlbaker361/league-hard-prompt"
 parser.add_argument("--image_field_name",type=str,default="tile")
 parser.add_argument("--text_field_name",type=str,default="subject")
 parser.add_argument("--limit",type=int,default=10)
+parser.add_argument("--start",type=int,default=0)
 parser.add_argument("--gradient_accumulation_steps",default=8,type=int)
 parser.add_argument("--mixed_precision",type=str,default="no")
 parser.add_argument("--project_name",type=str,default="distillation")
@@ -81,7 +82,9 @@ def main(args):
     location_list=[" at the beach", " in the jungle", " in the city", " at school", " in an office", " "]
     activity_list=[" skydiving "," eating ", " writing ", " standing ", " making pottery ", " talking ", " "]
     for i, row in enumerate(data):
-        if i>args.limit:
+        if i<args.start:
+            continue
+        if i>=args.limit:
             break
         image=row[args.image_field_name]
         subject=row[args.text_field_name]
