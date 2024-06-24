@@ -431,7 +431,7 @@ def main(args):
 
                             latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
                             #latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
-                            print('latents size',latents.size())
+                            #print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
                 end=time.time()
                 print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
