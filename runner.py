@@ -234,7 +234,7 @@ def main(args):
                                 teacher_latents=reverse_step(args,teacher_t, teacher_pipeline, start_latents, prompt_embeds, added_cond_kwargs)
                                 teacher_t_plus=teacher_pipeline.scheduler.timesteps[teacher_i+1]
                                 teacher_latents_plus=reverse_step(args,teacher_t_plus, teacher_pipeline, teacher_latents, prompt_embeds, added_cond_kwargs)
-                                print(student_t, teacher_t, teacher_t_plus)
+                                #print(student_t, teacher_t, teacher_t_plus)
                                 #compute loss
                                 
                                 loss=F.mse_loss(teacher_latents_plus,student_latents,reduction="mean")
