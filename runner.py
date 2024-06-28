@@ -259,16 +259,35 @@ def main(args):
                     save_dir=os.path.join(args.image_dir, "validation",f"steps_{student_steps}")
                     os.makedirs(save_dir, exist_ok=True)
                     #validation images
+                    lora_scale=None
+                    try:
+                        lora_scale = (
+                            student_pipeline.cross_attention_kwargs.get("scale", None) if student_pipeline.cross_attention_kwargs is not None else None)
+                    except:
+                        pass
+                    prompt_embeds, negative_prompt_embeds = student_pipeline.encode_prompt(
+                        prompt,
+                        student_pipeline.text_encoder.device,
+                        1,
+                        args.do_classifier_free_guidance,
+                        negative_prompt,
+                        prompt_embeds=None,
+                        negative_prompt_embeds=None,
+                        lora_scale=lora_scale,
+                        clip_skip=student_pipeline.clip_skip,
+                    )
                     kwargs={
-                        "prompt":subject,
+                        "prompt_embeds":prompt_embeds,
                         "guidance_scale":1.0,
                         "num_inference_steps":student_steps
                     }
                     if args.do_classifier_free_guidance:
                         kwargs["guidance_scale"]=args.guidance_scale
-                        kwargs["negative_prompt"]=negative_prompt
+                        kwargs["negative_prompt_embeds"]=negative_prompt_embeds
                     if args.use_ip_adapter:
                         kwargs["ip_adapter_image"]=image
+                    
+
                     validation_image=student_pipeline(**kwargs).images[0]
                     save_path=os.path.join(save_dir,f"_{e}.png")
                     validation_image.save(save_path)
@@ -435,7 +454,7 @@ def main(args):
                 print("epoch avg loss", avg_loss)
                 end=time.time()
                 print(f"epochs {e} ended after {end-start} seconds = {(end-start)/3600} hours")
-                inference_step_list=[inference_steps for inference_steps in range(1,args.final_num_inference_steps)]
+                inference_step_list=[inference_steps for inference_steps in range(1,args.initial_num_inference_steps)]
                 save_dir=os.path.join(args.image_dir, "validation",f"epoch_{e}")
                 os.makedirs(save_dir, exist_ok=True)
                 for inference_steps in inference_step_list:
