@@ -392,14 +392,13 @@ def main(args):
                     if args.do_classifier_free_guidance:
                         student_noise_pred_uncond, student_noise_pred_text = student_noise_pred.chunk(2)
                         student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
-                    latents=start_latents.clone()
                     #print("inital latents size",latents.size())
                     steps=teacher_pipeline.scheduler.timesteps
                     for teacher_t in steps:
                         #print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
                             #print("inital latents size 337",latents.size())
-                            latent_model_input = latents
+                            latent_model_input = start_latents.clone()
                             #print("inital latents size 339",latents.size())
                             latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
                             #print("latent_model_input size",latent_model_input.size())
