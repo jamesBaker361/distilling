@@ -398,16 +398,16 @@ def main(args):
                         #print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
                             #print("inital latents size 337",latents.size())
-                            latent_model_input = start_latents.clone()
+                            teacher_start_latents = start_latents.clone()
                             #print("inital latents size 339",latents.size())
-                            latent_model_input = teacher_pipeline.scheduler.scale_model_input(latent_model_input, teacher_t)
+                            teacher_start_latents = teacher_pipeline.scheduler.scale_model_input(teacher_start_latents, teacher_t)
                             #print("latent_model_input size",latent_model_input.size())
                             #print('teacher_pipeline.unet',teacher_pipeline.unet.device)
                             #print("atent_model_input",latent_model_input.device)
                             #print("teacher_t",teacher_t.device)
                             #print("prompt_embeds",prompt_embeds.device)
                             noise_pred = teacher_pipeline.unet(
-                                latent_model_input,
+                                teacher_start_latents,
                                 teacher_t.to(accelerator.device),
                                 encoder_hidden_states=prompt_embeds,
                                 timestep_cond=None,
@@ -415,7 +415,7 @@ def main(args):
                                 added_cond_kwargs=added_cond_kwargs,
                                 return_dict=False,
                             )[0]
-                            latents_pred=latent_model_input-noise_pred
+                            latents_pred=teacher_start_latents-noise_pred
                             #print("noise pred size", noise_pred.size())    
                             '''if args.do_classifier_free_guidance:
                                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
