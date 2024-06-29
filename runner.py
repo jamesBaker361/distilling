@@ -266,7 +266,7 @@ def main(args):
                     except:
                         pass
                     prompt_embeds, negative_prompt_embeds = student_pipeline.encode_prompt(
-                        prompt,
+                        subject,
                         student_pipeline.text_encoder.device,
                         1,
                         args.do_classifier_free_guidance,
@@ -394,13 +394,14 @@ def main(args):
                         student_noise_pred = student_noise_pred_uncond + args.guidance_scale * (student_noise_pred_text - student_noise_pred_uncond)
                     #print("inital latents size",latents.size())
                     steps=teacher_pipeline.scheduler.timesteps
+                    teacher_start_latents = start_latents.clone()
                     for teacher_t in steps:
                         #print("inital latents size 335",latents.size())
                         with accelerator.accumulate(student_pipeline.unet):
                             #print("inital latents size 337",latents.size())
-                            teacher_start_latents = start_latents.clone()
+                            
                             #print("inital latents size 339",latents.size())
-                            teacher_start_latents = teacher_pipeline.scheduler.scale_model_input(teacher_start_latents, teacher_t)
+                            #teacher_start_latents = teacher_pipeline.scheduler.scale_model_input(teacher_start_latents, teacher_t)
                             #print("latent_model_input size",latent_model_input.size())
                             #print('teacher_pipeline.unet',teacher_pipeline.unet.device)
                             #print("atent_model_input",latent_model_input.device)
@@ -447,7 +448,7 @@ def main(args):
                             optimizer.step()
                             optimizer.zero_grad()
 
-                            latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, latents, return_dict=False)[0]
+                            teacher_start_latents = teacher_pipeline.scheduler.step(noise_pred, teacher_t, teacher_start_latents, return_dict=False)[0]
                             #latents = torch.cat([latents] * 2) if args.do_classifier_free_guidance else latents
                             #print('latents size',latents.size())
                 print("epoch avg loss", avg_loss)
