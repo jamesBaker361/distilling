@@ -457,6 +457,15 @@ def main(args):
                 inference_step_list=[inference_steps for inference_steps in range(1,args.initial_num_inference_steps)]
                 save_dir=os.path.join(args.image_dir, "validation",f"epoch_{e}")
                 os.makedirs(save_dir, exist_ok=True)
+                if args.use_ip_adapter:
+                    image_encoder_device=student_pipeline.image_encoder.device
+                    student_pipeline.image_encoder=student_pipeline.image_encoder.to(accelerator.device)
+                text_encoder_device=student_pipeline.text_encoder.device
+                student_pipeline.text_encoder=student_pipeline.text_encoder.to(accelerator.device)
+                vae_device=student_pipeline.vae.device
+                student_pipeline.vae=student_pipeline.vae.to(accelerator.device)
+                unet_device=student_pipeline.unet.device
+                student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
                 for inference_steps in inference_step_list:
                     #validation images
                     kwargs={
@@ -471,6 +480,16 @@ def main(args):
                         kwargs["negative_prompt"]=negative_prompt
                     if args.use_ip_adapter:
                         kwargs["ip_adapter_image"]=image
+                        image_encoder_device=student_pipeline.image_encoder.device
+                        student_pipeline.image_encoder=student_pipeline.image_encoder.to(accelerator.device)
+                    text_encoder_device=student_pipeline.text_encoder.device
+                    student_pipeline.text_encoder=student_pipeline.text_encoder.to(accelerator.device)
+                    vae_device=student_pipeline.vae.device
+                    student_pipeline.vae=student_pipeline.vae.to(accelerator.device)
+                    unet_device=student_pipeline.unet.device
+                    student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
+
+
                     validation_image=student_pipeline(**kwargs).images[0]
                     save_path=os.path.join(save_dir,f"_{inference_steps}.png")
                     validation_image.save(save_path)
@@ -482,6 +501,14 @@ def main(args):
                         accelerator.log({
                             f"{e}/{inference_steps}":validation_image
                         })
+                if args.use_ip_adapter:
+                    student_pipeline.image_encoder=student_pipeline.image_encoder.to(image_encoder_device)
+                #text_encoder_device=student_pipeline.text_encoder.device
+                student_pipeline.text_encoder=student_pipeline.text_encoder.to(text_encoder_device)
+                #vae_device=student_pipeline.vae.device
+                student_pipeline.vae=student_pipeline.vae.to(vae_device)
+                #unet_device=student_pipeline.unet.device
+                student_pipeline.unet=student_pipeline.unet.to(unet_device)    
                 accelerator.free_memory()
                 torch.cuda.empty_cache()
         accelerator.free_memory()
