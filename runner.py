@@ -287,7 +287,15 @@ def main(args):
                     if args.use_ip_adapter:
                         kwargs["ip_adapter_image"]=image
                     
-
+                    if args.use_ip_adapter:
+                        image_encoder_device=student_pipeline.image_encoder.device
+                        student_pipeline.image_encoder=student_pipeline.image_encoder.to(accelerator.device)
+                    text_encoder_device=student_pipeline.text_encoder.device
+                    student_pipeline.text_encoder=student_pipeline.text_encoder.to(accelerator.device)
+                    vae_device=student_pipeline.vae.device
+                    student_pipeline.vae=student_pipeline.vae.to(accelerator.device)
+                    unet_device=student_pipeline.unet.device
+                    student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
                     validation_image=student_pipeline(**kwargs).images[0]
                     save_path=os.path.join(save_dir,f"_{e}.png")
                     validation_image.save(save_path)
@@ -299,6 +307,14 @@ def main(args):
                         accelerator.log({
                             f"{student_steps}/{e}":validation_image
                         })
+                    if args.use_ip_adapter:
+                        student_pipeline.image_encoder=student_pipeline.image_encoder.to(image_encoder_device)
+                    #text_encoder_device=student_pipeline.text_encoder.device
+                    student_pipeline.text_encoder=student_pipeline.text_encoder.to(text_encoder_device)
+                    #vae_device=student_pipeline.vae.device
+                    student_pipeline.vae=student_pipeline.vae.to(vae_device)
+                    #unet_device=student_pipeline.unet.device
+                    student_pipeline.unet=student_pipeline.unet.to(unet_device)
                     #check if epoch loss<convergence
                     if epoch_loss/(len(positive_prompt_list_batched))<args.convergence_threshold:
                         break
