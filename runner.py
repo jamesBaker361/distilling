@@ -69,6 +69,11 @@ smoothly interpolating between predicting x directly and predicting via epsilon.
 
 '''
 
+dtype_dict={
+    "no":torch.float32,
+    "fp16":torch.float16
+}
+
 @profile
 def main(args):
     current_date_time = current_datetime.strftime("%m/%d/%Y, %H:%M:%S")
@@ -159,6 +164,7 @@ def main(args):
         
         aggregate_dict={name: {metric:[] for metric in METRIC_LIST} for name in ["student","baseline","baseline_fast"]}
         if args.method_name==PROGRESSIVE:
+            teacher_pipeline=teacher_pipeline.to(dtype_dict[args.mixed_precision])
             print("line 149 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
             student_pipeline=clone_pipeline(args,teacher_pipeline,image)
@@ -168,6 +174,7 @@ def main(args):
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             print("line 156 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             student_steps=args.initial_num_inference_steps//2
+            student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
             accelerator.free_memory()
             torch.cuda.empty_cache()
             while student_steps>=args.final_num_inference_steps:
@@ -181,6 +188,7 @@ def main(args):
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
                 student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
+                student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
                 print("student pipeline all ready")
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
