@@ -106,6 +106,7 @@ def main(args):
         print("effective batch size = ",effective_batch_size)
         print("line 95 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         teacher_pipeline=BetterPipeline.from_pretrained(args.pretrained_path,safety_checker=None)
+        teacher_pipeline=teacher_pipeline.to(dtype_dict[args.mixed_precision])
         print("line 97 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         teacher_pipeline("do this to help instantiate proerties",num_inference_steps=1)
         if args.use_ip_adapter:
@@ -122,7 +123,6 @@ def main(args):
 
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
-        teacher_pipeline=teacher_pipeline.to(dtype_dict[args.mixed_precision])
         i=0 #prompt stuff preparation
         while len(training_prompt_list)%args.batch_size!=0:
             training_prompt_list.append(training_prompt_list[i])
@@ -172,7 +172,7 @@ def main(args):
             print("line 152 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
-            student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
+            student_pipeline.unet=accelerator.prepare(student_pipeline.unet)
             print("line 156 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             student_steps=args.initial_num_inference_steps//2
             
@@ -189,7 +189,7 @@ def main(args):
                 student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
-                student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
+                student_pipeline.unet=accelerator.prepare(student_pipeline.unet)
                 
                 print("student pipeline all ready")
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
