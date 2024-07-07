@@ -122,7 +122,7 @@ def main(args):
 
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
-
+        teacher_pipeline=teacher_pipeline.to(dtype_dict[args.mixed_precision])
         i=0 #prompt stuff preparation
         while len(training_prompt_list)%args.batch_size!=0:
             training_prompt_list.append(training_prompt_list[i])
@@ -168,13 +168,14 @@ def main(args):
             print("line 149 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
             student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+            student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
             print("line 152 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
         
             student_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
             student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
             print("line 156 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
             student_steps=args.initial_num_inference_steps//2
-            student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
+            
             accelerator.free_memory()
             torch.cuda.empty_cache()
             while student_steps>=args.final_num_inference_steps:
@@ -185,10 +186,11 @@ def main(args):
                 teacher_pipeline.unet.requires_grad_(False)
                 print("line 166 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                 student_pipeline=clone_pipeline(args,teacher_pipeline,image)
+                student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
                 student_pipeline.scheduler.set_timesteps(student_steps)
                 student_pipeline.unet.requires_grad_(True)
                 student_pipeline.unet=student_pipeline.unet.to(accelerator.device)
-                student_pipeline=student_pipeline.to(dtype_dict[args.mixed_precision])
+                
                 print("student pipeline all ready")
                 trainable_parameters=filter(lambda p: p.requires_grad, student_pipeline.unet.parameters())
                 #print(trainable_parameters)
