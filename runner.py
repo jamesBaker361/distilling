@@ -230,6 +230,7 @@ def main(args):
                             prompt_embeds=positive
                         steps=student_pipeline.scheduler.timesteps
                         for student_i in range(len(steps)):
+                            step_start=time.time()
                             with accelerator.accumulate(student_pipeline.unet):
                                 #print("prompt embeds size",prompt_embeds.size())
 
@@ -255,7 +256,10 @@ def main(args):
                                     accelerator.clip_grad_norm_(trainable_parameters, args.max_grad_norm)
                                 optimizer.step()
                                 optimizer.zero_grad()
+                                print()
                                 #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
+                            step_end=time.time()
+                            print(f"step {i} ended after {step_end-step_start} seconds = {(step_end-step_start)/3600} hours")
                         accelerator.log({
                             "avg_loss_per_step_per_sample":avg_loss
                         })
