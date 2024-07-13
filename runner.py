@@ -124,7 +124,7 @@ def main(args):
         teacher_pipeline.scheduler=DDIMScheduler.from_config(teacher_pipeline.scheduler.config)
         teacher_pipeline.scheduler.set_timesteps(args.initial_num_inference_steps)
         i=0 #prompt stuff preparation
-        while len(training_prompt_list)%args.batch_size!=0:
+        while len(training_prompt_list)%effective_batch_size!=0:
             training_prompt_list.append(training_prompt_list[i])
             i+=1
         positive_prompt_list=[]
@@ -179,7 +179,7 @@ def main(args):
             accelerator.free_memory()
             torch.cuda.empty_cache()
             while student_steps>=args.final_num_inference_steps:
-                accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
+                #accelerator.gradient_accumulation_steps=min(accelerator.gradient_accumulation_steps,student_steps )
                 print("effective batch size ",accelerator.gradient_accumulation_steps * args.batch_size)
                 print("line 163 psutil", psutil.cpu_percent(),psutil.virtual_memory().available * 100 / psutil.virtual_memory().total)
                 teacher_pipeline=student_pipeline
@@ -205,33 +205,33 @@ def main(args):
                     start=time.time()
                     epoch_loss=0.0
                     print("begin epoch ",e)
-
-                    for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
-                        #with accelerator.accumulate(student_pipeline.unet):
-                        avg_loss=0.0
-                        #TODO prepare and clone latents
-                        student_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
-                            args.batch_size,
-                            num_channels_latents,
-                            args.size,
-                            args.size,
-                            positive.dtype,
-                            accelerator.device,
-                            generator)
-                        #teacher_latents=student_latents.clone()
-                        teacher_latents_plus=student_latents.clone()
-                        positive=positive.to(accelerator.device)
-                        #print("latennts size",student_latents.size())
-                        
-                        if args.do_classifier_free_guidance:
-                            negative=negative.to(accelerator.device)
-                            prompt_embeds = torch.cat([negative, positive])
-                        else:
-                            prompt_embeds=positive
-                        steps=student_pipeline.scheduler.timesteps
-                        for student_i in range(len(steps)):
-                            step_start=time.time()
-                            with accelerator.accumulate(student_pipeline.unet):
+                    with accelerator.accumulate(student_pipeline.unet):
+                        for positive,negative in zip(positive_prompt_list_batched, negative_prompt_list_batched):
+                            #with accelerator.accumulate(student_pipeline.unet):
+                            avg_loss=0.0
+                            #TODO prepare and clone latents
+                            student_latents = student_pipeline.vae.config.scaling_factor * student_pipeline.prepare_latents(
+                                args.batch_size,
+                                num_channels_latents,
+                                args.size,
+                                args.size,
+                                positive.dtype,
+                                accelerator.device,
+                                generator)
+                            #teacher_latents=student_latents.clone()
+                            teacher_latents_plus=student_latents.clone()
+                            positive=positive.to(accelerator.device)
+                            #print("latennts size",student_latents.size())
+                            
+                            if args.do_classifier_free_guidance:
+                                negative=negative.to(accelerator.device)
+                                prompt_embeds = torch.cat([negative, positive])
+                            else:
+                                prompt_embeds=positive
+                            steps=student_pipeline.scheduler.timesteps
+                            for student_i in range(len(steps)):
+                                step_start=time.time()
+                                
                                 #print("prompt embeds size",prompt_embeds.size())
 
                                 start_latents=teacher_latents_plus
