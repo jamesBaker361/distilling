@@ -218,7 +218,7 @@ def main(args):
                             positive.dtype,
                             accelerator.device,
                             generator)
-                        teacher_latents=student_latents.clone()
+                        #teacher_latents=student_latents.clone()
                         teacher_latents_plus=student_latents.clone()
                         positive=positive.to(accelerator.device)
                         #print("latennts size",student_latents.size())
@@ -234,7 +234,7 @@ def main(args):
                             with accelerator.accumulate(student_pipeline.unet):
                                 #print("prompt embeds size",prompt_embeds.size())
 
-                                start_latents=teacher_latents_plus.clone()
+                                start_latents=teacher_latents_plus
 
                                 student_t=steps[student_i]
                                 teacher_i=(2*student_i)-1
