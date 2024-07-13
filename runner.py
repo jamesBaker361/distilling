@@ -259,7 +259,7 @@ def main(args):
                                 print()
                                 #avg_loss+=loss.detach().cpu().numpy()/effective_batch_size
                             step_end=time.time()
-                            print(f"step {i} ended after {step_end-step_start} seconds = {(step_end-step_start)/3600} hours")
+                            print(f"step {student_i} ended after {step_end-step_start} seconds = {(step_end-step_start)/3600} hours")
                         accelerator.log({
                             "avg_loss_per_step_per_sample":avg_loss
                         })
